@@ -54,12 +54,19 @@ docs/tasks/
 
 ---
 
+## Python 环境
+
+- 使用主机 Windows Python: `/mnt/e/python313/python.exe`
+- 所有依赖已预装 (numpy, pandas, scikit-learn, scipy, matplotlib, seaborn, xgboost, torch, shap, joblib)，无需新建虚拟环境
+- 运行脚本格式: `/mnt/e/python313/python.exe <script.py>`
+
 ## 当前状态
 
-- 项目处于 **初始化阶段**
-- `src/` 目录为空，待实现
+- 项目处于 **T01 已完成**, T02 待开始
+- `src/preprocessing/` 已完成 (cleaner, normalizer, feature_engineering)
+- `src/utils/config.py` 已创建
 - `data/raw/` 已有原始数据集
-- 10 个任务文档已在 `docs/tasks/todo/` 就绪
+- T01 任务文档已移至 `docs/tasks/done/`
 
 ---
 
@@ -72,3 +79,5 @@ docs/tasks/
 5. **实验脚本放在 experiments/** — 不污染 src/
 6. **随机种子统一** — `random_state=42`，确保可复现
 7. **弹性优先** — 每个任务有核心/推荐/可选三级，时间不足时优先保障核心项
+8. **文档同步更新** — 修改全局常量（阈值、标签、配置键名等）后，必须搜索 `docs/` 下所有引用该值的文档并一并更新，不得只改代码而不同步文档
+9. **英文输出** — 开发阶段所有代码 print 语句、中间报告文字（如 `reports/*.md`）一律使用英文。最终结题报告 (T10) 再切换为中文，避免 Windows Python 与 WSL/Linux 间编码不一致导致乱码

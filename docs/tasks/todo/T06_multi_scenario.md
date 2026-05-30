@@ -3,6 +3,7 @@
 **优先级**: 🔴 核心必做
 
 **依赖**: T04 (PSO 框架就绪), T03 (代理模型就绪)
+**前置安装**: SHAP 已在主机 Python 环境中安装 (`/mnt/e/python313/python.exe -m pip show shap`)，无需重复安装
 
 **负责模块**: `src/scenarios/`
 
@@ -58,7 +59,7 @@
 
 #### 6.3.5 决策规则提炼 (可选进阶)
 - [ ] 在高稳定性区域训练浅层决策树
-- [ ] 提取可读规则 (如 `IF speed < X AND wing_angle > Y THEN stability > 90`)
+- [ ] 提取可读规则 (如 `IF speed < X AND wing_angle > Y THEN stability ≥ 95`)
 - [ ] 与 PSO 最优解对照验证
 
 ### 6.4 寻优轨迹可视化 (可选)

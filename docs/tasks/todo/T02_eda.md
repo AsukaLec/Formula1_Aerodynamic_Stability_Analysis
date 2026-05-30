@@ -43,8 +43,8 @@
 
 ### 2.5 数据不平衡量化
 - [ ] 绘制 stability_index 的累计分布函数 (CDF)
-- [ ] 计算 P(y>90) 与 P(y<90) 比率
-- [ ] 识别低稳定性样本（<60）是否极度稀缺
+- [ ] 计算 P(stability<95) 与 P(stability≥95) 比率（海豚跳比例）
+- [ ] 按 4 档 (severe<30 / moderate 30-60 / mild 60-95 / stable≥95) 统计各档稀缺程度
 
 ---
 
