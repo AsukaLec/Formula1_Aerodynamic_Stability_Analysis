@@ -4,8 +4,6 @@
 
 **依赖**: T03 (代理模型就绪)
 
-**预计耗时**: 1-2 天
-
 **负责模块**: `src/visualization/plot_porpoising.py`
 
 ---

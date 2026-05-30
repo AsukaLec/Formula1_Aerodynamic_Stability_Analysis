@@ -4,8 +4,6 @@
 
 **依赖**: 无
 
-**预计耗时**: 2-3 天
-
 **负责模块**: `src/preprocessing/`
 
 ---
@@ -64,7 +62,7 @@
 - [ ] 导出 `imbalance_report.md` 明确标注偏态程度
 
 ## 输入
-- `data/actaruslab_f1_telemetry_2026.csv` (或从 Kaggle 重新下载)
+- `data/raw/actaruslab_f1_telemetry_2026.csv` (或从 Kaggle 重新下载)
 
 ## 输出
 ```

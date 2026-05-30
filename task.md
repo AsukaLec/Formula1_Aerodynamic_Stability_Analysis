@@ -20,18 +20,18 @@
 
 ## 任务总览
 
-| # | 任务 | 优先级 | 预计耗时 |
-|---|------|--------|----------|
-| T01 | [数据预处理与特征工程](docs/tasks/todo/T01_data_preprocessing.md) | 🔴 核心 | 2-3 天 |
-| T02 | [探索性数据分析](docs/tasks/todo/T02_eda.md) | 🔴 核心 | 1-2 天 |
-| T03 | [代理模型构建与对比](docs/tasks/todo/T03_surrogate_model.md) | 🔴 核心 | 3-5 天 |
-| T04 | [PSO 寻优框架搭建](docs/tasks/todo/T04_pso_optimization.md) | 🔴 核心 | 3-4 天 |
-| T05 | [主动学习迭代精炼](docs/tasks/todo/T05_active_learning.md) | 🟢 可选 | 2-3 天 |
-| T06 | [多场景优化与可解释性](docs/tasks/todo/T06_multi_scenario.md) | 🔴 核心 | 2-3 天 |
-| T07 | [Porpoising 风险可解释性](docs/tasks/todo/T07_porpoising_risk.md) | 🟡 推荐 | 1-2 天 |
-| T08 | [实验设计与评价](docs/tasks/todo/T08_experiments.md) | 🔴 核心 | 2-3 天 |
-| T09 | [结果可视化汇总](docs/tasks/todo/T09_visualization.md) | 🔴 核心 | 1-2 天 |
-| T10 | [结题报告撰写](docs/tasks/todo/T10_final_report.md) | 🔴 核心 | 2-3 天 |
+| # | 任务 | 优先级 |
+|---|------|--------|
+| T01 | [数据预处理与特征工程](docs/tasks/todo/T01_data_preprocessing.md) | 🔴 核心 |
+| T02 | [探索性数据分析](docs/tasks/todo/T02_eda.md) | 🔴 核心 |
+| T03 | [代理模型构建与对比](docs/tasks/todo/T03_surrogate_model.md) | 🔴 核心 |
+| T04 | [PSO 寻优框架搭建](docs/tasks/todo/T04_pso_optimization.md) | 🔴 核心 |
+| T05 | [主动学习迭代精炼](docs/tasks/todo/T05_active_learning.md) | 🟢 可选 |
+| T06 | [多场景优化与可解释性](docs/tasks/todo/T06_multi_scenario.md) | 🔴 核心 |
+| T07 | [Porpoising 风险可解释性](docs/tasks/todo/T07_porpoising_risk.md) | 🟡 推荐 |
+| T08 | [实验设计与评价](docs/tasks/todo/T08_experiments.md) | 🔴 核心 |
+| T09 | [结果可视化汇总](docs/tasks/todo/T09_visualization.md) | 🔴 核心 |
+| T10 | [结题报告撰写](docs/tasks/todo/T10_final_report.md) | 🔴 核心 |
 
 ---
 

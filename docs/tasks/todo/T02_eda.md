@@ -4,8 +4,6 @@
 
 **依赖**: T01 (数据预处理完成)
 
-**预计耗时**: 1-2 天
-
 **负责模块**: `src/visualization/plot_eda.py` + `notebooks/01_eda.ipynb`
 
 ---
