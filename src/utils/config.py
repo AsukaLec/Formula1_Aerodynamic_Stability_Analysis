@@ -96,3 +96,13 @@ PSO_DISCRETE_INDICES = [2]  # drs_active
 PSO_RISK_LAMBDA_VALUES = [0.0, 0.5, 1.0, 1.5, 2.0]
 PSO_DENSITY_K = 10
 PSO_DENSITY_LAMBDA = 0.5
+
+AL_TOP_K = 20
+AL_NN_NEIGHBORS = 5
+AL_PSO_INTERVAL = 10
+AL_MAX_ROUNDS = 5
+AL_FINETUNE_EPOCHS = 30
+AL_FINETUNE_LR = 5e-4
+
+AL_FIGURES_DIR = os.path.join(FIGURES_DIR, "active_learning")
+AL_REPORT_PATH = os.path.join(REPORTS_DIR, "active_learning_report.md")

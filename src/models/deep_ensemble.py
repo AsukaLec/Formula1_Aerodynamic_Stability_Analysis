@@ -45,6 +45,17 @@ class DeepEnsemble:
             t.eval()
         return self
 
+    def fine_tune(self, X, y, X_val=None, y_val=None, sample_weight=None,
+                  epochs=None, lr=None):
+        from src.utils.config import AL_FINETUNE_EPOCHS, AL_FINETUNE_LR
+        epochs = epochs or AL_FINETUNE_EPOCHS
+        lr = lr or AL_FINETUNE_LR
+        for trainer in self.trainers:
+            trainer.lr = lr
+            trainer.max_epochs = epochs
+            trainer.train(X, y, X_val, y_val, sample_weight=sample_weight)
+        return self
+
     def save(self, output_dir=None):
         output_dir = output_dir or DEEP_ENSEMBLE_DIR
         os.makedirs(output_dir, exist_ok=True)
