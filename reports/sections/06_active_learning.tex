@@ -1,0 +1,105 @@
+\section{主动学习迭代精炼}
+
+\subsection{闭环机制}
+
+在第5章构建的风险敏感PSO基础上，
+进一步引入主动学习（Active Learning）闭环机制，
+通过PSO探索反馈迭代精炼代理模型。
+该机制的核心循环为：
+
+\begin{enumerate}
+    \item \textbf{PSO探索}：风险敏感PSO在参数空间内搜索最优解，
+        同时收集候选位置的$\sigma(x)$不确定性信息；
+    \item \textbf{不确定性反馈}：DeepEnsemble估计每个访问位置的预测标准差，
+        识别模型不可靠的高不确定性区域；
+    \item \textbf{候选选择}：选取Top-K个$\sigma(x)$最高的候选位置，
+        这些位置代表代理模型需要增强的"薄弱区"；
+    \item \textbf{数据增强}：在高不确定性候选位置附近，
+        从原始训练集中选取最相似的样本加入训练集；
+    \item \textbf{模型精炼}：在扩充后的训练集上重新训练DeepEnsemble；
+    \item \textbf{循环}：PSO基于精炼后的模型继续搜索，如此迭代。
+\end{enumerate}
+
+\subsection{浅层一轮后处理精炼}
+
+本课题实现了浅层（Shallow）的一轮后处理精炼，
+即执行一次完整的"PSO探索$\to$不确定性反馈$\to$数据增强$\to$模型重训练"循环。
+
+\begin{table}[H]
+\centering
+\caption{主动学习精炼前后的模型性能对比}
+\begin{tabular}{lrrrr}
+\toprule
+指标 & 基线（精炼前） & 精炼后 & 变化量 & 变化率 \\
+\midrule
+R$^2$ & 0.9995 & 0.9998 & +0.0003 & +0.03\% \\
+MSE & 0.3272 & 0.1444 & $-$0.1828 & $-$55.9\% \\
+MAE & 0.2712 & 0.1678 & $-$0.1034 & $-$38.1\% \\
+RMSE & 0.5720 & 0.3800 & $-$0.1921 & $-$33.6\% \\
+\bottomrule
+\end{tabular}
+\label{tab:al_metrics}
+\end{table}
+
+表\ref{tab:al_metrics}显示，
+仅一轮主动学习精炼即带来显著的性能提升：
+MSE从0.3272降至0.1444（降低55.9\%），
+MAE降低38.1\%，RMSE降低33.6\%。
+这表明PSO探索确实识别了代理模型在OOD和低密度区域的薄弱环节。
+
+\subsection{候选解特征分析}
+
+主动学习选取了20个高不确定性候选解，
+选取100个最近邻训练样本进行数据增强。
+Top-5高不确定性候选解的特征分布如下：
+
+\begin{table}[H]
+\centering
+\caption{Top-5高不确定性候选解}
+\begin{tabular}{rrrrrrr}
+\toprule
+速度 (km/h) & 翼角 (°) & DRS & 下压力 (N) & 阻力 (N) & $\mu$ & $\sigma$ \\
+\midrule
+175 & 5.1 & 0 & 8773 & 154.8 & 36.34 & 37.57 \\
+217 & 14.7 & 1 & 6081 & 260.0 & 46.02 & 36.73 \\
+139 & 34.6 & 0 & 6911 & 196.6 & 41.63 & 36.63 \\
+106 & 40.4 & 0 & 6331 & 203.4 & 36.17 & 32.13 \\
+114 & 22.3 & 0 & 9093 & 155.3 & 27.68 & 31.36 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+这些高不确定性候选解的共同特征是：
+下压力极高（6000--9000N），
+对应着训练数据中极少出现的极端工况。
+主动学习通过在训练集中补充这些区域的样本，
+有效降低了代理模型在极端工况下的预测不确定性。
+
+\subsection{PSO收敛行为改善}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{figures/active_learning_convergence.png}
+\caption{主动学习精炼前后的PSO收敛曲线对比}
+\label{fig:al_conv}
+\end{figure}
+
+图\ref{fig:al_conv}对比了使用基线模型和精炼后的PSO收敛行为。
+精炼后的模型使PSO收敛速度提升2.1倍（37 $\to$ 18代），
+且最终gbest从101.30（可能含幻觉）降至100.02（更可信）。
+这说明：
+
+\begin{enumerate}
+    \item 精炼后模型在OOD区域的不确定性降低，
+        粒子无需因$\sigma(x)$惩罚而"绕行"，
+        直接沿更陡峭的适应度梯度收敛；
+    \item 收敛后gbest的降低（101.30 $\to$ 100.02）并非性能退步，
+        而是幻觉纠正——基线模型在OOD区域输出了不可靠的虚高评分。
+\end{enumerate}
+
+\subsection{小结}
+
+主动学习迭代精炼验证了"PSO探索$\to$模型反馈$\to$模型改进"
+闭环的有效性。
+一轮精炼即可将MSE降低55.9\%、收敛速度提升2.1倍，
+展示了该机制在降低代理模型OOD不确定性方面的显著价值。

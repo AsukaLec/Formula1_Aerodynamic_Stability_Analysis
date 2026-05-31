@@ -1,0 +1,88 @@
+\section{研究背景}
+
+\subsection{问题定义}
+
+F1赛车的空气动力学设计高度依赖计算流体力学（CFD）与风洞实验。
+2022年FIA引入"地面效应"规则后，
+赛车设计面临全新的核心矛盾：
+
+\begin{enumerate}
+    \item \textbf{规则约束}：FIA的空气动力学测试限制（ATR）
+        对CFD仿真时长和计算资源实施严格配额，
+        传统高精度仿真在有限周期内难以覆盖大规模参数空间；
+    \item \textbf{瞬态非线性}："海豚跳"（Porpoising）
+        涉及车速、翼角、DRS状态等多参数的共振耦合，
+        传统方法难以捕捉其强非线性特性；
+    \item \textbf{数据不平衡}：公开数据集中高稳定性样本占绝对多数（86.02\%），
+        低稳定性样本稀缺，给机器学习建模带来偏置风险。
+\end{enumerate}
+
+\subsection{研究目标}
+
+本研究旨在构建一套\textbf{数据驱动的代理模型 + 智能优化}框架，
+设 $x = (\text{speed}, \text{wing\_angle}, \text{drs}, \text{downforce}, \text{drag}) \in \mathbb{R}^5$
+为赛车工况参数，
+$y = f(x) \in [0, 100]$ 为气动稳定性评分。
+
+核心目标分为以下三个层次：
+
+\vspace{0.3cm}
+
+\noindent
+\textbf{目标一：代理模型构建}
+
+建立从5维输入到稳定性评分的回归映射 $\hat{f}(x)$。
+要求：
+\begin{itemize}
+    \item 预测精度 R$^2 \geq 0.85$（最低）/ $\geq 0.92$（理想）
+    \item 推理延迟 $\leq 10$ms，支撑PSO高频调用
+    \item 对比不少于4种模型，形成完整谱系评估
+\end{itemize}
+
+\vspace{0.3cm}
+
+\noindent
+\textbf{目标二：风险感知参数寻优}
+
+在代理模型之上，
+求解约束优化问题：
+\begin{equation}
+    x^* = \arg\max_{x \in \mathcal{X}} \,
+    \left[ \mu(x) - \lambda \cdot \sigma(x) - P_{\text{scenario}}(x) \right]
+    \label{eq:obj}
+\end{equation}
+其中：
+\begin{itemize}
+    \item $\mu(x)$ 为深度集成模型（DeepEnsemble）对稳定性的预测均值；
+    \item $\sigma(x)$ 为集成成员间的预测标准差（不确定性）；
+    \item $\lambda$ 为风险厌恶系数；
+    \item $P_{\text{scenario}}(x)$ 为场景相关的软约束惩罚项。
+\end{itemize}
+
+该公式是本文的核心创新——通过显式惩罚预测不确定性，
+使PSO在搜索过程中自然避开代理模型不可靠的分布外（OOD）区域。
+
+\vspace{0.3cm}
+
+\noindent
+\textbf{目标三：多场景优化与可解释性}
+
+定义4组典型F1赛道工况，
+在不同约束和权重向量下运行多目标PSO寻优，
+并通过SHAP、排列重要性、约束灵敏度分析和Landscape Diagnosis
+对最优解进行可解释性验证，
+确保优化结果的物理合理性和方法论可信度。
+
+\subsection{研究意义}
+
+本课题的实践意义在于：
+（1）为F1车队在规则限制下提供一种低成本的气动参数快速筛选工具；
+（2）通过风险敏感机制解决代理模型在OOD区域的可靠性问题，
+提升工程决策的鲁棒性；
+（3）系统性的可解释性分析为数据驱动优化结果提供了透明、
+可追溯的验证路径。
+
+在方法论层面，
+本课题构建的"代理建模—不确定性感知优化—主动学习精炼—多维可解释性"
+技术闭环，可迁移至航空航天、船舶水动力学等
+具有类似"高成本仿真 + 大规模参数空间 + 数据不平衡"特征的工程优化场景。
