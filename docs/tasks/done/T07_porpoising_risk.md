@@ -48,16 +48,21 @@ Risk(x) = ||∇f(x)|| ≈ |∂f/∂v| + |∂f/∂α|
 - [x] 生成 DRS=0 和 DRS=1 两组 Porpoising 风险热力图
 - [x] 图上叠加了 T06 场景最优解的位置 (with Zone A/B physics annotations)
 - [x] 报告中有一段关于最优解安全性的分析 (console output + 关键决策记录)
-- [ ] (推荐) 风险分布与气动物理直觉一致 → **未通过**: 模型平滑插值导致梯度无法表征物理风险, 已记录分析
+- [x] (推荐) 风险分布与气动物理直觉一致 → **v2 通过** (扩展网格至 PSO bounds 后通过, 见关键决策 #3)
 
-## 输出
+## 输出 (10 张图)
 ```
 figures/porpoising_risk/
-├── risk_heatmap_drs0.png          (log-scale, Zone A/B annotated)
-├── risk_heatmap_drs1.png          (log-scale, Zone A/B annotated)
-├── risk_vs_optimal_overlay.png    (side-by-side comparison)
-├── stability_surface_drs0.png     (predicted stability_index, DRS=0)
-└── stability_surface_drs1.png     (predicted stability_index, DRS=1)
+├── risk_heatmap_drs0.png          (一阶梯度风险, log-scale, Zone A/B annotated)
+├── risk_heatmap_drs1.png
+├── risk_vs_optimal_overlay.png    (side-by-side comparison, GridSpec layout)
+├── stability_surface_drs0.png     (predicted stability_index surface, DRS=0)
+├── stability_surface_drs1.png
+├── hessian_curvature_drs0.png     (二阶曲率强度 |λ_max|)
+├── hessian_curvature_drs1.png
+├── hessian_concavity_drs0.png     (凹区域标注: red=concave/risky, green=convex/safe)
+├── hessian_concavity_drs1.png
+└── hessian_summary.png            (2×3 overview: Curvature + Concavity + Anisotropy)
 ```
 
 ## 输入
@@ -70,7 +75,7 @@ figures/porpoising_risk/
 > - 此模块不依赖 PSO，可与 T06 并行开发
 > - 若梯度的解析计算困难，数值差分近似完全可以接受
 > - 若此模块被跳过，需在报告中说明"海豚跳风险分析作为未来工作"
-> - 可扩展: 不仅分析梯度范数，还分析 Hessian 特征值（曲率分析）
+> - ✅ 已扩展: Hessian 特征值曲率分析 (curvature / concavity / anisotropy)
 
 ## 关键决策记录
 

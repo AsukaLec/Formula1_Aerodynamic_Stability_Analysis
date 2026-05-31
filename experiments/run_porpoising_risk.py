@@ -29,6 +29,7 @@ from src.utils.config import (
 from src.models.deep_ensemble import DeepEnsemble
 from src.visualization.plot_porpoising import (
     compute_porpoising_risk, plot_risk_heatmaps,
+    compute_hessian_analysis, plot_hessian_analysis,
     compute_xgboost_risk, PORPOISING_FIGURES_DIR,
 )
 
@@ -179,7 +180,6 @@ def print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bou
     print("  Physical Intuition Verification")
     print("=" * 60)
 
-    # High-speed + small wing angle region (danger zone)
     speed_high_mask = grid_speed[:, None] > 250
     wing_low_mask = grid_wing[None, :] < 10
     danger_drs0 = risk_drs0[speed_high_mask & wing_low_mask]
@@ -189,7 +189,6 @@ def print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bou
     print(f"  High-speed (>250 km/h) + Small wing (<10°) — DRS=1: "
           f"mean_risk={danger_drs1.mean():.4f}")
 
-    # Low-speed + large wing angle region (safe zone)
     speed_low_mask = grid_speed[:, None] < 150
     wing_high_mask = grid_wing[None, :] > 25
     safe_drs0 = risk_drs0[speed_low_mask & wing_high_mask]
@@ -199,7 +198,6 @@ def print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bou
     print(f"  Low-speed (<150 km/h) + Large wing (>25°)  — DRS=1: "
           f"mean_risk={safe_drs1.mean():.4f}")
 
-    # DRS open vs closed comparison
     drs_diff = risk_drs1 - risk_drs0
     print(f"\n  DRS ON - OFF risk difference: range [{drs_diff.min():.4f}, {drs_diff.max():.4f}]")
     print(f"  Mean risk increase from DRS ON: {drs_diff.mean():.4f}")
@@ -207,7 +205,6 @@ def print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bou
     ratio = risk_drs1.mean() / risk_drs0.mean() if risk_drs0.mean() > 0 else float("inf")
     print(f"  DRS ON/OFF risk ratio: {ratio:.2f}")
 
-    # Overall assessment
     print()
     if danger_drs0.mean() > safe_drs0.mean():
         print("  [PASS] High-speed + small wing shows higher risk than low-speed + large wing.")
@@ -220,6 +217,68 @@ def print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bou
         print("  [PASS] DRS ON increases risk on average — consistent with reduced rear grip.")
     else:
         print("  [NOTE] DRS ON does not increase risk overall in this model.")
+
+
+def print_hessian_analysis(hessian_data, best_solutions):
+    """Print Hessian curvature analysis for each scenario optimal solution."""
+    gs = hessian_data["grid_speed_inner"]
+    gw = hessian_data["grid_wing_inner"]
+
+    print()
+    print("=" * 60)
+    print("  Hessian Curvature Analysis (Extension)")
+    print("=" * 60)
+
+    for drs_val, curv_grid, conc_grid in [
+        (0, hessian_data["curvature_drs0"], hessian_data["concavity_drs0"]),
+        (1, hessian_data["curvature_drs1"], hessian_data["concavity_drs1"]),
+    ]:
+        drs_label = f"DRS={drs_val}"
+        conc_ratio = conc_grid.mean() * 100
+        print(f"\n  [{drs_label}]")
+        print(f"    Curvature range: {curv_grid.min():.4f} – {curv_grid.max():.4f}")
+        print(f"    Curvature mean: {curv_grid.mean():.4f}")
+        print(f"    Concave ratio: {conc_ratio:.1f}%  (fraction with lambda2 < 0)")
+
+    for sol in best_solutions:
+        drs = sol["drs_active"]
+        curv_grid = hessian_data[f"curvature_drs{drs}"]
+        conc_grid = hessian_data[f"concavity_drs{drs}"]
+        aniso_grid = hessian_data[f"anisotropy_drs{drs}"]
+
+        si = np.abs(gs - sol["speed_kmh"]).argmin()
+        wi = np.abs(gw - sol["wing_angle_deg"]).argmin()
+        curv = curv_grid[si, wi]
+        conc = "CONCAVE (risky)" if conc_grid[si, wi] > 0.5 else "convex (safe)"
+        aniso = aniso_grid[si, wi]
+
+        print(f"\n  [{sol['scenario_name']}] DRS={drs}")
+        print(f"    Curvature: {curv:.4f}  ({conc})")
+        print(f"    Anisotropy: {aniso:.2f}  (directional curvature bias)")
+        print(f"    Fitness: {sol['gbest_fitness']:.2f}")
+
+    # Overall assessment
+    all_conc_drs0 = hessian_data["concavity_drs0"].mean() * 100
+    all_conc_drs1 = hessian_data["concavity_drs1"].mean() * 100
+    all_curv_mean = (hessian_data["curvature_drs0"].mean() +
+                     hessian_data["curvature_drs1"].mean()) / 2
+
+    print(f"\n  === Hessian Summary ===")
+    print(f"  Global concave ratio: DRS=0 {all_conc_drs0:.1f}%, DRS=1 {all_conc_drs1:.1f}%")
+    print(f"  Global curvature mean: {all_curv_mean:.4f}")
+
+    n_concave = sum(1 for sol in best_solutions
+                    for drs in [0, 1]
+                    if drs == sol["drs_active"]
+                    and hessian_data[f"concavity_drs{sol['drs_active']}"][
+                        np.abs(gs - sol["speed_kmh"]).argmin(),
+                        np.abs(gw - sol["wing_angle_deg"]).argmin()] > 0.5
+                   )
+    if n_concave > 0:
+        print(f"  [WARNING] {n_concave} optimal solution(s) lie in concave (potentially unstable) regions.")
+    else:
+        print(f"  [OK] All optimal solutions lie in convex regions — Hessian confirms stability.")
+    print()
 
 
 def main():
@@ -282,6 +341,14 @@ def main():
         "train_wing_bounds",
         (scaler_mm.data_min_[1], scaler_mm.data_max_[1]))
     print_analysis(risk_data, best_solutions, train_speed_bounds, train_wing_bounds)
+
+    # ============ 5.5 Hessian Curvature Analysis (extension) ============
+    print("\n[5.5] Computing Hessian curvature analysis...")
+    t0 = time.time()
+    hessian_data = compute_hessian_analysis(risk_data)
+    print_hessian_analysis(hessian_data, best_solutions)
+    plot_hessian_analysis(hessian_data, best_solutions, PORPOISING_FIGURES_DIR)
+    print(f"  Done ({time.time() - t0:.1f}s)")
 
     print()
     print("=" * 60)

@@ -3,7 +3,7 @@
 > 实验代码：`experiments/run_multi_scenario.py`  
 > 生成时间：2026-05-31  
 > 上文任务：T04 (PSO 框架) + T03 (代理模型 XGBoost / DeepEnsemble)  
-> 下文任务：T07 (Porpoising 热力图) / T08 (消融实验)
+> 上文任务回顾：T07 (Porpoising 热力图, ✅) / 下文任务：T08 (消融实验)
 
 ---
 

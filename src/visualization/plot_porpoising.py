@@ -154,8 +154,12 @@ def compute_porpoising_risk(ensemble, scaler_mm, X_train_orig, n_grid=80, knn_k=
 
         risk = np.sqrt(grad_speed_real ** 2 + grad_wing_real ** 2)
         risk = risk.reshape(n_grid, n_grid)
+        gs = grad_speed_real.reshape(n_grid, n_grid)
+        gw = grad_wing_real.reshape(n_grid, n_grid)
 
         risk_results[f"risk_drs{drs}"] = risk
+        risk_results[f"grad_speed_drs{drs}"] = gs
+        risk_results[f"grad_wing_drs{drs}"] = gw
 
     risk_results["grid_speed"] = grid_speed
     risk_results["grid_wing"] = grid_wing
@@ -371,6 +375,207 @@ def plot_risk_heatmaps(risk_data, best_solutions, stability_surface=None, output
             fig.savefig(os.path.join(output_dir, filename), dpi=150, bbox_inches="tight")
             plt.close(fig)
             print(f"  Saved: {os.path.join(output_dir, filename)}")
+
+
+def compute_hessian_analysis(risk_data):
+    """Compute Hessian curvature and concavity from gradient fields.
+
+    Uses central finite differences on the gradient grids to estimate
+    second-order partial derivatives at interior points.
+
+    Returns dict with:
+      - "curvature_drs{0,1}": (n_grid-2, n_grid-2) max eigenvalue magnitude
+      - "concavity_drs{0,1}": (n_grid-2, n_grid-2) binary mask (1=concave)
+      - "anisotropy_drs{0,1}": (n_grid-2, n_grid-2) eigenvalue ratio
+      - "grid_speed_inner", "grid_wing_inner": 1D arrays for interior points
+    """
+    grid_speed = risk_data["grid_speed"]
+    grid_wing = risk_data["grid_wing"]
+    dv = grid_speed[1] - grid_speed[0]
+    da = grid_wing[1] - grid_wing[0]
+
+    hessian_data = {
+        "grid_speed_inner": grid_speed[1:-1],
+        "grid_wing_inner": grid_wing[1:-1],
+    }
+
+    for drs in [0, 1]:
+        gs = risk_data[f"grad_speed_drs{drs}"]  # (n, n)
+        gw = risk_data[f"grad_wing_drs{drs}"]
+
+        # Second derivatives via central differences on gradient fields
+        # interior: i in [1, n-2], j in [1, n-2]
+        n = gs.shape[0]
+        d2f_dv2 = (gs[2:, 1:-1] - gs[:-2, 1:-1]) / (2 * dv)       # ∂²f/∂v²
+        d2f_da2 = (gw[1:-1, 2:] - gw[1:-1, :-2]) / (2 * da)       # ∂²f/∂α²
+        cross_v = (gs[1:-1, 2:] - gs[1:-1, :-2]) / (2 * da)       # ∂(∂f/∂v)/∂α
+        cross_a = (gw[2:, 1:-1] - gw[:-2, 1:-1]) / (2 * dv)       # ∂(∂f/∂α)/∂v
+        d2f_dvda = (cross_v + cross_a) / 2.0                       # symmetrised
+
+        # Eigenvalues of [[a, b], [b, c]] with a=d2f_dv2, b=d2f_dvda, c=d2f_da2
+        trace = d2f_dv2 + d2f_da2
+        det = d2f_dv2 * d2f_da2 - d2f_dvda ** 2
+        discriminant = np.maximum((trace / 2.0) ** 2 - det, 0)
+        sqrt_disc = np.sqrt(discriminant)
+        lam1 = trace / 2.0 + sqrt_disc
+        lam2 = trace / 2.0 - sqrt_disc
+
+        curvature = np.maximum(np.abs(lam1), np.abs(lam2))          # curvature strength
+        concavity = (np.minimum(lam1, lam2) < 0).astype(np.float64) # 1 if concave
+        denom = np.maximum(np.abs(lam2), 1e-12)
+        anisotropy = np.maximum(np.abs(lam1) / denom, np.abs(lam2) / np.maximum(np.abs(lam1), 1e-12))
+
+        hessian_data[f"curvature_drs{drs}"] = curvature
+        hessian_data[f"concavity_drs{drs}"] = concavity
+        hessian_data[f"anisotropy_drs{drs}"] = anisotropy
+
+    return hessian_data
+
+
+def plot_hessian_analysis(hessian_data, best_solutions, output_dir=None):
+    """Generate Hessian-based porpoising diagnostic figures.
+
+    Creates:
+      - hessian_curvature_drs0.png / drs1.png   — curvature strength
+      - hessian_concavity_drs0.png / drs1.png   — concave zones (red=risky)
+      - hessian_summary.png                      — 2x3 overview panel
+    """
+    output_dir = output_dir or PORPOISING_FIGURES_DIR
+    os.makedirs(output_dir, exist_ok=True)
+
+    gs = hessian_data["grid_speed_inner"]
+    gw = hessian_data["grid_wing_inner"]
+
+    scenario_colors = {"S1_monza": "#e74c3c", "S2_monaco": "#3498db",
+                       "S3_balanced": "#2ecc71", "S4_wet": "#9b59b6"}
+    scenario_markers = {"S1_monza": "s", "S2_monaco": "o",
+                        "S3_balanced": "^", "S4_wet": "D"}
+    scenario_edgecolors = {"S1_monza": "darkred", "S2_monaco": "darkblue",
+                           "S3_balanced": "darkgreen", "S4_wet": "darkviolet"}
+
+    # Shared limits
+    all_curv = np.concatenate([hessian_data["curvature_drs0"].ravel(),
+                               hessian_data["curvature_drs1"].ravel()])
+    curv_vmax = np.percentile(all_curv, 98)
+
+    for drs_val, curv_grid, conc_grid, drs_label, curv_fn, conc_fn in [
+        (0, hessian_data["curvature_drs0"], hessian_data["concavity_drs0"],
+         "DRS OFF", "hessian_curvature_drs0.png", "hessian_concavity_drs0.png"),
+        (1, hessian_data["curvature_drs1"], hessian_data["concavity_drs1"],
+         "DRS ON", "hessian_curvature_drs1.png", "hessian_concavity_drs1.png"),
+    ]:
+        # --- Curvature ---
+        fig, ax = plt.subplots(figsize=(9, 6.5))
+        c = ax.contourf(gs, gw, curv_grid.T, levels=30, cmap="YlOrRd",
+                        vmin=0, vmax=curv_vmax)
+        cb = plt.colorbar(c, ax=ax, shrink=0.82)
+        cb.set_label("Hessian Curvature  max(|λ₁|, |λ₂|)", fontsize=10)
+        for sol in best_solutions:
+            if sol["drs_active"] == drs_val:
+                color = scenario_colors.get(sol["scenario"], "black")
+                marker = scenario_markers.get(sol["scenario"], "*")
+                ec = scenario_edgecolors.get(sol["scenario"], "black")
+                ax.scatter(sol["speed_kmh"], sol["wing_angle_deg"],
+                           c=color, marker=marker, s=160, edgecolors=ec,
+                           linewidths=1.2, zorder=5,
+                           label=f"{sol['scenario_name']} ({sol['gbest_fitness']:.2f})")
+        ax.legend(fontsize=7.5, loc="upper right", framealpha=0.9)
+        ax.set_xlabel("Speed (km/h)", fontsize=11)
+        ax.set_ylabel("Wing Angle (deg)", fontsize=11)
+        ax.set_title(f"Hessian Curvature — {drs_label}", fontsize=12, fontweight="bold")
+        ax.grid(alpha=0.25)
+        fig.savefig(os.path.join(output_dir, curv_fn), dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  Saved: {os.path.join(output_dir, curv_fn)}")
+
+        # --- Concavity ---
+        fig, ax = plt.subplots(figsize=(9, 6.5))
+        cmap_conc = matplotlib.colors.ListedColormap(["#2ecc71", "#e74c3c"])
+        ax.pcolormesh(gs, gw, conc_grid.T, cmap=cmap_conc, vmin=0, vmax=1, alpha=0.7)
+        # Outline concave clusters
+        from scipy import ndimage
+        if conc_grid.any():
+            labeled, n_feat = ndimage.label(conc_grid)
+            for i in range(1, n_feat + 1):
+                mask = labeled == i
+                if mask.sum() > 3:
+                    yy, xx = np.where(mask)
+                    r_min, r_max = yy.min(), yy.max()
+                    c_min, c_max = xx.min(), xx.max()
+                    rect = matplotlib.patches.Rectangle(
+                        (gs[c_min], gw[r_min]),
+                        gs[c_max] - gs[c_min], gw[r_max] - gw[r_min],
+                        linewidth=1.2, edgecolor="#c0392b", facecolor="none",
+                        linestyle="--", alpha=0.6)
+                    ax.add_patch(rect)
+        cbar = plt.colorbar(plt.cm.ScalarMappable(
+            norm=matplotlib.colors.Normalize(0, 1), cmap=cmap_conc),
+            ax=ax, shrink=0.82, ticks=[0.25, 0.75])
+        cbar.ax.set_yticklabels(["Convex (safe)", "Concave (risky)"])
+        for sol in best_solutions:
+            if sol["drs_active"] == drs_val:
+                color = scenario_colors.get(sol["scenario"], "black")
+                marker = scenario_markers.get(sol["scenario"], "*")
+                ec = scenario_edgecolors.get(sol["scenario"], "black")
+                ax.scatter(sol["speed_kmh"], sol["wing_angle_deg"],
+                           c="white", marker=marker, s=160, edgecolors=ec,
+                           linewidths=1.2, zorder=5,
+                           label=f"{sol['scenario_name']} ({sol['gbest_fitness']:.2f})")
+        ax.legend(fontsize=7.5, loc="upper right", framealpha=0.9)
+        ax.set_xlabel("Speed (km/h)", fontsize=11)
+        ax.set_ylabel("Wing Angle (deg)", fontsize=11)
+        ax.set_title(f"Concave Regions (Hessian λ < 0) — {drs_label}",
+                     fontsize=12, fontweight="bold")
+        ax.grid(alpha=0.25)
+        fig.savefig(os.path.join(output_dir, conc_fn), dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  Saved: {os.path.join(output_dir, conc_fn)}")
+
+    # --- Summary panel (2x3) ---
+    fig = plt.figure(figsize=(20, 12))
+    gs_grid = fig.add_gridspec(2, 3, hspace=0.32, wspace=0.28)
+
+    panels = [
+        (0, 0, hessian_data["curvature_drs0"], "YlOrRd",
+         "Curvature DRS=0", curv_vmax, False),
+        (0, 1, hessian_data["curvature_drs1"], "YlOrRd",
+         "Curvature DRS=1", curv_vmax, False),
+        (0, 2, hessian_data["concavity_drs0"], cmap_conc,
+         "Concavity DRS=0", 1, True),
+        (1, 0, hessian_data["concavity_drs1"], cmap_conc,
+         "Concavity DRS=1", 1, True),
+        (1, 1, hessian_data["anisotropy_drs0"], "plasma",
+         "Anisotropy DRS=0", np.percentile(hessian_data["anisotropy_drs0"], 98), False),
+        (1, 2, hessian_data["anisotropy_drs1"], "plasma",
+         "Anisotropy DRS=1", np.percentile(hessian_data["anisotropy_drs1"], 98), False),
+    ]
+
+    for row, col, data, cmap, title, vmax, is_categorical in panels:
+        ax = fig.add_subplot(gs_grid[row, col])
+        if is_categorical:
+            ax.pcolormesh(gs, gw, data.T, cmap=cmap, vmin=0, vmax=1, alpha=0.7)
+        else:
+            ax.contourf(gs, gw, data.T, levels=30, cmap=cmap, vmin=0, vmax=vmax)
+        for sol in best_solutions:
+            col_sol = scenario_colors.get(sol["scenario"], "black")
+            marker = scenario_markers.get(sol["scenario"], "*")
+            ec = scenario_edgecolors.get(sol["scenario"], "black")
+            ax.scatter(sol["speed_kmh"], sol["wing_angle_deg"],
+                       c=col_sol if not is_categorical else "white",
+                       marker=marker, s=80, edgecolors=ec, linewidths=0.8, zorder=5)
+        ax.set_xlabel("Speed (km/h)", fontsize=9)
+        ax.set_ylabel("Wing Angle (deg)", fontsize=9)
+        ax.set_title(title, fontsize=11, fontweight="bold")
+        ax.grid(alpha=0.2)
+
+    fig.suptitle("Hessian-Based Porpoising Risk Diagnostics  (concave zone = potential instability)",
+                 fontsize=14, fontweight="bold")
+    summary_path = os.path.join(output_dir, "hessian_summary.png")
+    fig.savefig(summary_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {summary_path}")
+
+    return hessian_data
 
 
 def compute_xgboost_risk(xgb_model, scaler_ss, X_train_orig, n_grid=80, knn_k=10, eps=1.0):

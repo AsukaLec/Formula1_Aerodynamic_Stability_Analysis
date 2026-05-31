@@ -55,7 +55,7 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   │   ├── plot_eda.py                # 探索性数据分析图表
 │   │   ├── plot_regions.py            # 高性能区域可视化
 │   │   ├── plot_scenarios.py          # 多场景: 雷达/龙卷风/收敛/SHAP瀑布/Pareto/轨迹/等高线叠加
-│   │   └── plot_porpoising.py         # Porpoising风险热力图 (待T07实现)
+│   │   └── plot_porpoising.py         # Porpoising风险热力图 + Hessian曲率分析
 │   └── utils/                         # 工具
 │       ├── config.py                   # 全局配置 (模型/PSO/场景/HPR参数/路径)
 │       └── metrics.py
