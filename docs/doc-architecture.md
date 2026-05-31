@@ -65,6 +65,7 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   ├── run_pso_comparison.py
 │   ├── run_region_discovery.py
 │   ├── run_multi_scenario.py          # T06: 多场景优化+可解释性分析
+│   ├── run_trajectory_viz.py          # T06扩展: PSO粒子PCA迁移轨迹
 │   ├── run_active_learning.py
 │   └── run_ablation.py
 │

@@ -387,3 +387,61 @@ def extract_decision_rules(model_wrapper=None, n_samples=5000, max_depth=3):
     rules_text = export_text(tree, feature_names=FEATURE_COLS, decimals=2)
 
     return tree, rules_text
+
+
+# --- Trajectory Data Collection for PCA Visualization -----------------------
+
+
+def collect_trajectory_data(result):
+    """Extract per-iteration particle positions and gbest from a PSO result.
+
+    Parameters
+    ----------
+    result : dict
+        PSO result with keys "candidates" and "history".
+
+    Returns
+    -------
+    positions_list : list of np.ndarray
+        One (n_particles, dim) array per iteration.
+    gbest_positions : np.ndarray (n_iter, dim)
+    gbest_fitnesses : np.ndarray (n_iter,)
+    fitnesses_list : list of np.ndarray
+        One (n_particles,) array per iteration.
+    """
+    batches = result.get("candidates", [])
+    if not batches:
+        raise ValueError("result has no 'candidates'. Run PSO with collect_candidates=True.")
+
+    positions_list = [b[0] for b in batches]
+    fitnesses_list = [b[1] for b in batches]
+    gbest_positions = np.array(result["history"]["gbest_pos"])
+    gbest_fitnesses = np.array(result["history"]["gbest_fitness"])
+
+    return positions_list, gbest_positions, gbest_fitnesses, fitnesses_list
+
+
+def pca_reduce(all_positions, n_components=2):
+    """Fit StandardScaler + PCA on all particle positions.
+
+    Parameters
+    ----------
+    all_positions : np.ndarray (N, dim)
+        Stacked positions from all iterations and scenarios.
+    n_components : int
+
+    Returns
+    -------
+    pca_model : PCA
+    scaler : StandardScaler
+    explained_var : np.ndarray (n_components,)
+    """
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+
+    scaler = StandardScaler()
+    scaled = scaler.fit_transform(all_positions)
+    pca_model = PCA(n_components=n_components, random_state=RANDOM_STATE)
+    pca_model.fit(scaled)
+
+    return pca_model, scaler, pca_model.explained_variance_ratio_

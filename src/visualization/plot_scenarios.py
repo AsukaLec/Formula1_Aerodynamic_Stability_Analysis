@@ -460,3 +460,124 @@ def plot_scenario_report(all_results, shap_values=None, X_background=None,
             if td:
                 print(f"  [Plot] Sensitivity tornado ({sn})...")
                 plot_sensitivity_tornado(td, bl, sn)
+
+
+# ============================================================================
+# PSO Particle Trajectory (PCA 2D)
+# ============================================================================
+
+
+def plot_trajectory(traj_data, scenario_name, pca_model, scaler, explained_var):
+    """Plot PSO particle migration trajectories in PCA 2D space.
+
+    Parameters
+    ----------
+    traj_data : tuple
+        (positions_list, gbest_positions, gbest_fitnesses, fitnesses_list)
+        as returned by collect_trajectory_data().
+    scenario_name : str
+    pca_model : sklearn PCA
+    scaler : sklearn StandardScaler
+    explained_var : np.ndarray (2,) — PC1, PC2 explained variance ratios.
+    """
+    positions_list, gbest_positions, gbest_fitnesses, fitnesses_list = traj_data
+    n_iters = len(positions_list)
+    n_particles = positions_list[0].shape[0]
+
+    # Project gbest trajectory
+    gbest_scaled = scaler.transform(gbest_positions)
+    gbest_2d = pca_model.transform(gbest_scaled)
+
+    # Project all particles per iteration
+    all_scaled = scaler.transform(np.vstack(positions_list))
+    all_2d = pca_model.transform(all_scaled)
+
+    # Split back per iteration
+    iter_offsets = [0]
+    for pos in positions_list:
+        iter_offsets.append(iter_offsets[-1] + len(pos))
+    per_iter_2d = [all_2d[iter_offsets[i]:iter_offsets[i+1]] for i in range(n_iters)]
+
+    # Build hexbin background colored by mean fitness
+    per_iter_fit = fitnesses_list
+    all_fitnesses = np.concatenate(per_iter_fit)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Hexbin background
+    hb = ax.hexbin(all_2d[:, 0], all_2d[:, 1], C=all_fitnesses,
+                   gridsize=40, cmap="YlOrRd", alpha=0.55, reduce_C_function=np.mean,
+                   linewidths=0.1, edgecolors="face")
+    cbar = plt.colorbar(hb, ax=ax, shrink=0.75, pad=0.02)
+    cbar.set_label("Mean Fitness (stability proxy)", fontsize=9)
+
+    # Particle dots: all particles, all iterations, faded
+    colors_iter = plt.cm.viridis(np.linspace(0.1, 0.9, n_iters))
+    for i in range(n_iters):
+        ax.scatter(per_iter_2d[i][:, 0], per_iter_2d[i][:, 1],
+                   s=3, alpha=0.08, color=colors_iter[i], edgecolors="none")
+
+    # Top-5 particle trajectories (by final fitness)
+    final_fitness = per_iter_fit[-1]
+    top_indices = np.argsort(final_fitness)[::-1][:5]
+
+    for pid in top_indices:
+        traj = np.array([per_iter_2d[i][pid] for i in range(n_iters)])
+        # Color line: light blue to dark blue
+        segments = np.linspace(0, 1, n_iters)
+        for s in range(n_iters - 1):
+            t = segments[s]
+            color = (0.45 * (1 - t), 0.6 * (1 - t), 0.85 * (0.4 + 0.6 * t))
+            ax.plot(traj[s:s+2, 0], traj[s:s+2, 1], color=color,
+                    linewidth=1.2, alpha=0.6)
+        # Arrow at final segment
+        if n_iters >= 2:
+            dx = traj[-1, 0] - traj[-2, 0]
+            dy = traj[-1, 1] - traj[-2, 1]
+            ax.arrow(traj[-2, 0], traj[-2, 1], dx * 0.9, dy * 0.9,
+                     head_width=0.15, head_length=0.2, fc="darkblue",
+                     ec="darkblue", alpha=0.7, linewidth=0.5)
+
+    # Gbest trajectory (red)
+    ax.plot(gbest_2d[:, 0], gbest_2d[:, 1], "-", color="#e34a33",
+            linewidth=2.5, alpha=0.85, label="gbest trajectory", zorder=5)
+
+    # Mark gbest at intervals
+    mark_iters = list(range(0, n_iters, max(1, n_iters // 8)))
+    for mi in mark_iters:
+        ax.plot(gbest_2d[mi, 0], gbest_2d[mi, 1], "o",
+                color="#e34a33", markersize=6, alpha=0.7, zorder=6)
+
+    # Final gbest: gold star
+    ax.plot(gbest_2d[-1, 0], gbest_2d[-1, 1], "*",
+            color="gold", markersize=18, markeredgecolor="darkorange",
+            markeredgewidth=1.2, zorder=7)
+
+    # Start point marker
+    ax.plot(gbest_2d[0, 0], gbest_2d[0, 1], "s",
+            color="white", markersize=7, markeredgecolor="dimgray",
+            markeredgewidth=1.2, zorder=5)
+
+    # Annotations
+    ax.annotate("Start", (gbest_2d[0, 0], gbest_2d[0, 1]),
+                textcoords="offset points", xytext=(8, -8),
+                fontsize=8, color="dimgray", fontweight="bold")
+    ax.annotate(f"End (f={gbest_fitnesses[-1]:.2f})",
+                (gbest_2d[-1, 0], gbest_2d[-1, 1]),
+                textcoords="offset points", xytext=(8, 8),
+                fontsize=8, color="darkred", fontweight="bold")
+
+    pc1_pct = explained_var[0] * 100
+    pc2_pct = explained_var[1] * 100
+    ax.set_xlabel(f"PC1 ({pc1_pct:.1f}%)", fontsize=11)
+    ax.set_ylabel(f"PC2 ({pc2_pct:.1f}%)", fontsize=11)
+    ax.set_title(f"PSO Particle Migration Trajectory: {scenario_name}\n"
+                 f"({n_particles} particles × {n_iters} iters, "
+                 f"PCA 2D: {pc1_pct+pc2_pct:.1f}% variance retained)",
+                 fontsize=12, fontweight="bold")
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.grid(alpha=0.2)
+
+    # Tight layout with colorbar
+    fig.tight_layout()
+    _save(fig, f"trajectory_{scenario_name.split()[0].lower()}.png")
