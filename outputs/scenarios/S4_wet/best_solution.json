@@ -1,22 +1,22 @@
 {
   "scenario": "S4_wet",
-  "scenario_name": "S4 Wet/Inter (Optional)",
+  "scenario_name": "S4 Wet",
   "gbest_pos": [
-    154.45260712953387,
-    15.0,
+    290.0,
+    20.0,
     0.0,
-    1391.0992827243874,
-    36.25477943544049
+    4480.863645135091,
+    18.0
   ],
   "gbest_pos_dict": {
-    "speed_kmh": 154.45260712953387,
-    "wing_angle_deg": 15.0,
+    "speed_kmh": 290.0,
+    "wing_angle_deg": 20.0,
     "drs_active": 0.0,
-    "downforce_n": 1391.0992827243874,
-    "drag_n": 36.25477943544049
+    "downforce_n": 4480.863645135091,
+    "drag_n": 18.0
   },
-  "gbest_fitness": 99.8206524644047,
-  "n_iter": 80,
-  "converged": false,
-  "trial_seed": 4500
+  "gbest_fitness": 0.7905929346883986,
+  "n_iter": 53,
+  "converged": true,
+  "trial_seed": 4300
 }

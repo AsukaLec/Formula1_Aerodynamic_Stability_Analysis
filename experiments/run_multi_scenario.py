@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.utils.config import (
-    SCENARIOS_FIGURES_DIR, FEATURE_COLS, RANDOM_STATE,
+    SCENARIOS_DIR, SCENARIOS_FIGURES_DIR, FEATURE_COLS, RANDOM_STATE,
     SCENARIO_N_TRIALS, SCENARIO_LAMBDA_RISK,
     PROCESSED_DIR, PSO_PARAM_BOUNDS,
 )
@@ -27,7 +27,7 @@ from src.scenarios.scenario_def import (
 )
 from src.scenarios.scenario_runner import (
     run_scenario_trials, save_scenario_results, build_comparison_csv,
-    run_all_scenarios, _make_scenario_fitness,
+    run_all_scenarios, run_all_scenarios_multiobj, _make_scenario_fitness,
 )
 from src.analysis.explainability import (
     load_xgb_model,
@@ -39,6 +39,8 @@ from src.analysis.explainability import (
 )
 from src.visualization.plot_scenarios import (
     plot_shap_waterfall, plot_scenario_report,
+    plot_pareto_frontier, plot_parallel_coordinates,
+    plot_multiobj_convergence, plot_landscape_multimodality,
 )
 from src.optimization.fitness import load_xgb_fitness
 
@@ -278,16 +280,88 @@ def main(include_optional=False, run_counterfactual=True, run_rules=True):
     return all_results
 
 
+def main_multiobj(include_optional=True, run_landscape=True):
+    """Run multi-objective PSO with scenario-specific weights."""
+    print("=" * 60)
+    print("  T06 v2: Multi-Objective Scenario Optimization")
+    print("=" * 60)
+
+    scenarios = ALL_SCENARIOS.copy()
+    if include_optional:
+        scenarios += OPTIONAL_SCENARIOS
+    print(f"  Running {len(scenarios)} scenarios (multi-objective weights)")
+
+    # ---- Phase 1: Multi-objective PSO ----
+    print(f"\n  Phase 1: Running multi-objective PSO ({SCENARIO_N_TRIALS} per scenario, lambda={SCENARIO_LAMBDA_RISK})")
+    t0 = time.time()
+    all_results = run_all_scenarios_multiobj(scenarios, n_trials=SCENARIO_N_TRIALS, verbose=True)
+    t_phase1 = time.time() - t0
+    print(f"\n  Phase 1 completed in {t_phase1:.1f}s")
+
+    # ---- Phase 2: Comparison CSV ----
+    print("\n  Phase 2: Building comparison CSV")
+    build_comparison_csv(all_results)
+
+    # ---- Phase 3: Landscape Analysis ----
+    if run_landscape:
+        print("\n  Phase 3: Landscape Analysis (random sampling + PCA/t-SNE)...")
+        t0 = time.time()
+        plot_landscape_multimodality(all_results_multiobj=all_results, n_samples=30000)
+        print(f"  Landscape completed in {time.time()-t0:.1f}s")
+
+    # ---- Phase 4: Multi-objective Plots ----
+    print("\n  Phase 4: Generating multi-objective plots...")
+
+    print("  [Plot] Pareto frontiers...")
+    plot_pareto_frontier(all_results)
+
+    print("  [Plot] Parallel coordinates...")
+    plot_parallel_coordinates(all_results)
+
+    print("  [Plot] Multi-objective convergence...")
+    plot_multiobj_convergence(all_results)
+
+    # ---- Summary ----
+    print("\n" + "=" * 60)
+    print("  T06 v2 Multi-Objective Summary")
+    print("=" * 60)
+    for code in sorted(all_results.keys()):
+        _, stats = all_results[code]
+        print(f"  {code}: fitness={stats['fitness_mean']:.4f}+/-{stats['fitness_std']:.4f}, "
+              f"stab={stats['comp_means']['stability']:.1f}, "
+              f"eff={stats['comp_means']['efficiency']:.1f}, "
+              f"pow={stats['comp_means']['power']:.3f}")
+        w = stats.get("weights", {})
+        print(f"         weights: ws={w.get('w_stability','')} we={w.get('w_efficiency','')} wp={w.get('w_power','')}")
+        for col in FEATURE_COLS:
+            print(f"         {col:>18s}: {stats['param_means'][col]:.1f}")
+
+    print(f"\n  Outputs: {SCENARIOS_DIR}/")
+    print(f"  Figures:  {SCENARIOS_FIGURES_DIR}/")
+
+    return all_results
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="T06: Multi-Scenario Optimization")
-    parser.add_argument("--core", action="store_true", help="Core only: S1+S2 (default runs all S1-S4)")
-    parser.add_argument("--no-cf", action="store_true", help="Skip counterfactual analysis")
-    parser.add_argument("--no-rules", action="store_true", help="Skip decision rule extraction")
+    parser.add_argument("--core", action="store_true", help="Core only: S1+S2")
+    parser.add_argument("--no-cf", action="store_true", help="Skip counterfactual analysis (v1 only)")
+    parser.add_argument("--no-rules", action="store_true", help="Skip decision rule extraction (v1 only)")
+    parser.add_argument("--multiobj", action="store_true", help="Run multi-objective mode (v2)")
+    parser.add_argument("--both", action="store_true", help="Run both v1 single-obj and v2 multi-obj")
     args = parser.parse_args()
 
-    main(
-        include_optional=not args.core,
-        run_counterfactual=not args.no_cf,
-        run_rules=not args.no_rules,
-    )
+    if args.multiobj:
+        main_multiobj(include_optional=not args.core)
+    elif args.both:
+        print("\n===== PHASE A: Single-Objective (v1) =====")
+        main(include_optional=not args.core, run_counterfactual=not args.no_cf, run_rules=not args.no_rules)
+        print("\n\n===== PHASE B: Multi-Objective (v2) =====")
+        main_multiobj(include_optional=not args.core)
+    else:
+        main(
+            include_optional=not args.core,
+            run_counterfactual=not args.no_cf,
+            run_rules=not args.no_rules,
+        )

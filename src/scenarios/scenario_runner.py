@@ -10,7 +10,7 @@ from src.utils.config import (
     PSO_C1, PSO_C2, PSO_TOL, PSO_EARLY_STOP_ITERS,
 )
 from src.optimization.fitness import (
-    FitnessRiskSensitive, FitnessStandard, ModelWrapper,
+    FitnessRiskSensitive, FitnessStandard, FitnessMultiObjective, ModelWrapper,
     load_xgb_fitness, load_ensemble_fitness,
 )
 from src.optimization.pso_risk_sensitive import DEFAULT_BOUNDS, DISCRETE_INDICES
@@ -48,6 +48,147 @@ def _make_scenario_fitness(scenario, use_risk=True, lambda_risk=SCENARIO_LAMBDA_
     else:
         base = load_xgb_fitness()
     return ScenarioFitness(base, scenario)
+
+
+def _make_multiobjective_fitness(scenario, lambda_risk=SCENARIO_LAMBDA_RISK):
+    """Build multi-objective fitness with scenario-specific weights.
+
+    Parameters
+    ----------
+    scenario : ScenarioDefinition — must have a .weights dict.
+    lambda_risk : float
+
+    Returns
+    -------
+    FitnessMultiObjective
+    """
+    from src.models.deep_ensemble import DeepEnsemble
+    from src.utils.config import (
+        MLP_HIDDEN_UNITS, NN_LR, NN_WEIGHT_DECAY, NN_BATCH_SIZE,
+        NN_MAX_EPOCHS, NN_EARLY_STOP_PATIENCE, DEEP_ENSEMBLE_M, PROCESSED_DIR,
+    )
+    import numpy as np
+
+    ensemble = DeepEnsemble.load(
+        input_dim=5, hidden_units=MLP_HIDDEN_UNITS, M=DEEP_ENSEMBLE_M,
+        lr=NN_LR, weight_decay=NN_WEIGHT_DECAY,
+        batch_size=NN_BATCH_SIZE, max_epochs=NN_MAX_EPOCHS,
+        patience=NN_EARLY_STOP_PATIENCE,
+    )
+    with open(os.path.join(PROCESSED_DIR, "scaler_mm.pkl"), "rb") as f:
+        import pickle; scaler = pickle.load(f)
+    wrapper = ModelWrapper(ensemble, scaler, model_type="ensemble", y_transform="x100")
+
+    w = scenario.weights
+    fitness = FitnessMultiObjective(
+        wrapper,
+        w_stability=w.get("w_stability", 0.5),
+        w_efficiency=w.get("w_efficiency", 0.3),
+        w_power=w.get("w_power", 0.2),
+        lambda_risk=lambda_risk,
+    )
+
+    # Compute normalisation constants from training data
+    import pandas as pd
+    train = pd.read_csv(os.path.join(PROCESSED_DIR, "train.csv"))
+    max_eff = (train["downforce_n"] / (train["drag_n"] + 1e-6)).quantile(0.99)
+    max_pow = (train["drag_n"] * train["speed_kmh"]).quantile(0.99)
+    fitness._set_norm_constants(max_eff, max_pow)
+
+    return fitness
+
+
+def run_scenario_trials_multiobj(
+    scenario,
+    n_trials=SCENARIO_N_TRIALS,
+    n_particles=SCENARIO_N_PARTICLES,
+    max_iter=SCENARIO_MAX_ITER,
+    seed_base=SCENARIO_SEED_BASE,
+    verbose=True,
+):
+    """Run N PSO trials for a scenario using multi-objective fitness.
+
+    Returns
+    -------
+    results, stats (same format as run_scenario_trials, with extra 'components' key)
+    """
+    fitness = _make_multiobjective_fitness(scenario)
+
+    results = []
+    best_positions = []
+    best_fitnesses = []
+    best_components = []
+
+    if verbose:
+        print(f"\n{'=' * 60}")
+        print(f"  {scenario.name}  [MULTI-OBJECTIVE]")
+        w = scenario.weights
+        print(f"  weights: ws={w['w_stability']}, we={w['w_efficiency']}, wp={w['w_power']}")
+        print(f"  speed fixed: {scenario.bounds[0][0]:.0f} km/h")
+        print(f"  wing range: [{scenario.bounds[1][0]:.0f}, {scenario.bounds[1][1]:.0f}]°")
+        print(f"{'=' * 60}")
+
+    for t in range(n_trials):
+        trial_seed = seed_base + t * 100
+        pso = PSOAdaptive(
+            n_particles=n_particles,
+            bounds=scenario.bounds,
+            discrete_indices=scenario.discrete_indices,
+            w_start=PSO_W_START, w_end=PSO_W_END, alpha=PSO_W_ALPHA,
+            c1=PSO_C1, c2=PSO_C2,
+            max_iter=max_iter,
+            early_stop_iters=PSO_EARLY_STOP_ITERS,
+            tol=PSO_TOL,
+            seed=trial_seed,
+            maximise=True,
+        )
+        result = pso.optimize(fitness, verbose=False, collect_candidates=True)
+        result["trial_seed"] = trial_seed
+        result["scenario_name"] = scenario.name
+
+        # Compute objective components at the gbest position
+        stab, eff, power, sigma, _ = fitness.evaluate_components(
+            result["gbest_pos"].reshape(1, -1)
+        )
+        result["components"] = {
+            "stability": float(stab[0]), "efficiency": float(eff[0]),
+            "power": float(power[0]), "sigma": float(sigma[0]),
+        }
+
+        results.append(result)
+        best_positions.append(result["gbest_pos"])
+        best_fitnesses.append(result["gbest_fitness"])
+        best_components.append(result["components"])
+
+        if verbose:
+            comp = result["components"]
+            print(f"  Trial {t+1:2d}/{n_trials}: f={result['gbest_fitness']:.4f}, "
+                  f"stab={comp['stability']:.1f}, eff={comp['efficiency']:.1f}, "
+                  f"pow={comp['power']:.3f}, iters={result['n_iter']}")
+
+    best_arr = np.array(best_positions)
+    fit_arr = np.array(best_fitnesses)
+    comp_keys = ["stability", "efficiency", "power", "sigma"]
+    comp_means = {k: float(np.mean([c[k] for c in best_components])) for k in comp_keys}
+    comp_stds = {k: float(np.std([c[k] for c in best_components], ddof=1)) for k in comp_keys}
+
+    stats = {
+        "scenario": scenario.code,
+        "n_trials": n_trials,
+        "model_type": "multi_objective_ensemble",
+        "lambda_risk": SCENARIO_LAMBDA_RISK,
+        "weights": dict(scenario.weights),
+        "fitness_mean": float(np.mean(fit_arr)),
+        "fitness_std": float(np.std(fit_arr, ddof=1)),
+        "param_means": {FEATURE_COLS[i]: float(np.mean(best_arr[:, i])) for i in range(len(FEATURE_COLS))},
+        "param_stds":  {FEATURE_COLS[i]: float(np.std(best_arr[:, i], ddof=1)) for i in range(len(FEATURE_COLS))},
+        "iters_mean": float(np.mean([r["n_iter"] for r in results])),
+        "converged_rate": float(np.mean([1.0 if r["converged"] else 0.0 for r in results])),
+        "comp_means": comp_means,
+        "comp_stds": comp_stds,
+    }
+
+    return results, stats
 
 
 def run_scenario_trials(
@@ -210,14 +351,21 @@ def build_comparison_csv(all_results):
             "scenario_name": stats.get("scenario", code),
             "fitness_mean": stats["fitness_mean"],
             "fitness_std": stats["fitness_std"],
-            "fitness_min": stats["fitness_min"],
-            "fitness_max": stats["fitness_max"],
             "iters_mean": stats["iters_mean"],
             "converged_rate": stats["converged_rate"],
         }
         for col in FEATURE_COLS:
             row[f"{col}_mean"] = stats["param_means"].get(col)
             row[f"{col}_std"] = stats["param_stds"].get(col)
+        # Multi-objective components
+        if "comp_means" in stats:
+            for k, v in stats["comp_means"].items():
+                row[f"comp_{k}_mean"] = v
+            for k, v in stats.get("comp_stds", {}).items():
+                row[f"comp_{k}_std"] = v
+            row["w_stability"] = stats.get("weights", {}).get("w_stability", "")
+            row["w_efficiency"] = stats.get("weights", {}).get("w_efficiency", "")
+            row["w_power"] = stats.get("weights", {}).get("w_power", "")
         rows.append(row)
 
     df = pd.DataFrame(rows)
@@ -226,3 +374,20 @@ def build_comparison_csv(all_results):
     df.to_csv(path, index=False)
     print(f"\n  Comparison saved: {path}")
     return df
+
+
+def run_all_scenarios_multiobj(scenarios, n_trials=SCENARIO_N_TRIALS, verbose=True):
+    """Run multi-objective PSO for all given scenarios.
+
+    Returns
+    -------
+    all_results : dict {scenario.code: (results_list, stats_dict)}
+    """
+    all_results = {}
+    for scenario in scenarios:
+        results, stats = run_scenario_trials_multiobj(
+            scenario, n_trials=n_trials, verbose=verbose,
+        )
+        all_results[scenario.code] = (results, stats)
+        save_scenario_results(scenario, results, stats)
+    return all_results

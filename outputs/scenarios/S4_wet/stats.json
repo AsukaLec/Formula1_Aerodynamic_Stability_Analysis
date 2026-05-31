@@ -1,40 +1,41 @@
 {
   "scenario": "S4_wet",
   "n_trials": 15,
-  "model_type": "risk_sensitive_ensemble",
+  "model_type": "multi_objective_ensemble",
   "lambda_risk": 1.0,
-  "fitness_mean": 99.82026713434607,
-  "fitness_std": 0.0004911157363037096,
-  "fitness_min": 99.81906403554603,
-  "fitness_max": 99.8206524644047,
+  "weights": {
+    "w_stability": 0.6,
+    "w_efficiency": 0.2,
+    "w_power": 0.2
+  },
+  "fitness_mean": 0.7905927527265941,
+  "fitness_std": 4.21184189060907e-07,
   "param_means": {
-    "speed_kmh": 162.72398320982066,
-    "wing_angle_deg": 15.0,
+    "speed_kmh": 290.0,
+    "wing_angle_deg": 20.0,
     "drs_active": 0.0,
-    "downforce_n": 903.240208379557,
-    "drag_n": 73.16220526637352
+    "downforce_n": 4480.793532084149,
+    "drag_n": 18.0
   },
   "param_stds": {
-    "speed_kmh": 9.281585217720803,
+    "speed_kmh": 0.0,
     "wing_angle_deg": 0.0,
     "drs_active": 0.0,
-    "downforce_n": 454.25710006160267,
-    "drag_n": 30.12338012973295
+    "downforce_n": 1.0345895904545055,
+    "drag_n": 0.0
   },
-  "param_mins": {
-    "speed_kmh": 152.84101224165968,
-    "wing_angle_deg": 15.0,
-    "drs_active": 0.0,
-    "downforce_n": 0.0,
-    "drag_n": 33.13739615177985
+  "iters_mean": 33.4,
+  "converged_rate": 1.0,
+  "comp_means": {
+    "stability": 99.81603264808655,
+    "efficiency": 248.93296017506606,
+    "power": 0.033430107595240115,
+    "sigma": 0.16174477602665624
   },
-  "param_maxs": {
-    "speed_kmh": 185.6365265583966,
-    "wing_angle_deg": 15.0,
-    "drs_active": 0.0,
-    "downforce_n": 1457.6470108347228,
-    "drag_n": 120.0
-  },
-  "iters_mean": 50.2,
-  "converged_rate": 0.6666666666666666
+  "comp_stds": {
+    "stability": 0.0014799002869694653,
+    "efficiency": 0.05747719627651718,
+    "power": 7.18243755452549e-18,
+    "sigma": 0.0009226033990535977
+  }
 }

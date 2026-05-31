@@ -1,22 +1,22 @@
 {
   "scenario": "S3_balanced",
-  "scenario_name": "S3 Balanced (Optional)",
+  "scenario_name": "S3 Balanced",
   "gbest_pos": [
-    200.0544734177884,
-    10.0,
-    0.0,
-    787.1558534557469,
-    110.56711013182317
+    320.0,
+    20.0,
+    1.0,
+    4409.68811298633,
+    18.0
   ],
   "gbest_pos_dict": {
-    "speed_kmh": 200.0544734177884,
-    "wing_angle_deg": 10.0,
-    "drs_active": 0.0,
-    "downforce_n": 787.1558534557469,
-    "drag_n": 110.56711013182317
+    "speed_kmh": 320.0,
+    "wing_angle_deg": 20.0,
+    "drs_active": 1.0,
+    "downforce_n": 4409.68811298633,
+    "drag_n": 18.0
   },
-  "gbest_fitness": 99.82835698174313,
-  "n_iter": 80,
-  "converged": false,
-  "trial_seed": 4500
+  "gbest_fitness": 0.7900825697064043,
+  "n_iter": 39,
+  "converged": true,
+  "trial_seed": 4400
 }

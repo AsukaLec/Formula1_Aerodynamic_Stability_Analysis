@@ -42,18 +42,19 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   │   ├── pso_base.py                # 标准 PSO
 │   │   ├── pso_adaptive.py            # 自适应 PSO
 │   │   ├── pso_risk_sensitive.py      # 风险敏感 PSO
-│   │   ├── fitness.py                 # 适应度函数
+│   │   ├── fitness.py                 # 适应度函数 (标准/风险敏感/多目标)
 │   │   └── active_learning.py         # 主动学习 (可选)
 │   ├── analysis/                       # 可解释性与优化结果分析
 │   │   ├── region_discovery.py        # 高性能参数区域发现
-│   │   └── explainability.py          # SHAP/排列重要性/约束灵敏度/反事实/决策规则
+│   │   ├── explainability.py          # SHAP/排列重要性/约束灵敏度/反事实/决策规则/PCA轨迹
+│   │   └── landscape_diagnosis.py     # 优化景观诊断 (翼角敏感性/梯度/数据结构A-E)
 │   ├── scenarios/                     # 多场景定义与执行
-│   │   ├── scenario_def.py            # S1(Monza)/S2(Monaco)/S3(均衡)/S4(湿地)
-│   │   └── scenario_runner.py         # 多试验PSO运行与统计汇总
+│   │   ├── scenario_def.py            # S1(Monza)/S2(Monaco)/S3(均衡)/S4(湿地) + 多目标权重
+│   │   └── scenario_runner.py         # 多试验PSO运行与统计汇总 (单目标/多目标)
 │   ├── visualization/                 # 可视化
 │   │   ├── plot_eda.py                # 探索性数据分析图表
 │   │   ├── plot_regions.py            # 高性能区域可视化
-│   │   ├── plot_scenarios.py          # 多场景雷达/龙卷风/收敛/SHAP瀑布图
+│   │   ├── plot_scenarios.py          # 多场景: 雷达/龙卷风/收敛/SHAP瀑布/Pareto/轨迹/等高线叠加
 │   │   └── plot_porpoising.py         # Porpoising风险热力图 (待T07实现)
 │   └── utils/                         # 工具
 │       ├── config.py                   # 全局配置 (模型/PSO/场景/HPR参数/路径)
@@ -64,8 +65,9 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   ├── run_model_comparison.py
 │   ├── run_pso_comparison.py
 │   ├── run_region_discovery.py
-│   ├── run_multi_scenario.py          # T06: 多场景优化+可解释性分析
+│   ├── run_multi_scenario.py          # T06: 多场景优化+可解释性分析 (单目标/多目标)
 │   ├── run_trajectory_viz.py          # T06扩展: PSO粒子PCA迁移轨迹
+│   ├── run_landscape_diagnosis.py     # T06扩展: 景观诊断 Tasks A-E
 │   ├── run_active_learning.py
 │   └── run_ablation.py
 │
@@ -79,7 +81,7 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   ├── models/
 │   ├── pso/
 │   ├── scenarios/
-│   │   └── README.md                   # T06各图含义与数值说明
+│   │   └── README.md                   # T06: 27张图含义与数值说明 (含Pareto/诊断/等高线)
 │   ├── regions/                        # 高性能参数区域发现图
 │   ├── active_learning/
 │   └── porpoising_risk/
@@ -88,7 +90,10 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   ├── statistics_report.md
 │   ├── model_comparison.csv
 │   ├── imbalance_report.md
-│   └── experiment_results.md
+│   ├── experiment_results.md
+│   ├── active_learning_report.md
+│   ├── landscape_diagnosis_report.md   # 景观诊断报告 (生成版)
+│   └── landscape_diagnosis_results.md  # 景观诊断结果 (AI可读版)
 │
 ├── requirements.txt
 ├── README.md

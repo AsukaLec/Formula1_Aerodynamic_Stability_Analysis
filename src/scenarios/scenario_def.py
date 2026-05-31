@@ -19,6 +19,7 @@ class ScenarioDefinition:
         bounds_overrides=None,
         fixed_params=None,
         penalty_terms=None,
+        weights=None,
     ):
         """
         Parameters
@@ -35,12 +36,15 @@ class ScenarioDefinition:
             {col_index: value} — forces parameter to a single value.
         penalty_terms : list of callable or None
             Each callable takes (N, dim) positions array, returns (N,) penalty values.
-            Penalties are SUBTRACTED from fitness (i.e. higher penalty → lower fitness).
+        weights : dict or None
+            Multi-objective weights: {"w_stability": float, "w_efficiency": float, "w_power": float}.
+            Powers the FitnessMultiObjective composite score. If None, falls back to single-objective.
         """
         self.name = name
         self.code = code
         self.description = description
         self._penalty_terms = penalty_terms or []
+        self.weights = weights or {}
 
         default_bounds = np.array(PSO_PARAM_BOUNDS, dtype=np.float64)
         self._bounds = default_bounds.copy()
@@ -100,59 +104,77 @@ def _downforce_penalty_fn(threshold=3000.0, weight=SCENARIO_PENALTY_DOWNFORCE):
 
 
 # ---------------------------------------------------------------------------
-# Scenario definitions
+# Scenario definitions (v2: multi-objective with fixed max speed)
+# Training data ranges: speed[100,365], wing[5,35], downforce[105,8979], drag[18,516]
+# All scenario bounds are clipped to training P1-P99 for OOD safety.
 # ---------------------------------------------------------------------------
+
+TRAIN_WING_MIN = 20.0     # engineering minimum — wing never below 20° in real F1
+TRAIN_WING_MAX = 35.0     # training data max
+TRAIN_DF_MIN = 105.0      # training data min
+TRAIN_DF_MAX = 8979.0     # training data max (~P99)
+TRAIN_DRAG_MIN = 18.0     # training data min
+TRAIN_DRAG_MAX = 516.0    # training data max
 
 SCENARIO_S1_MONZA = ScenarioDefinition(
     name="S1 Monza High-Speed",
     code="S1_monza",
-    description="High-speed circuit: speed > 280, low wing angle, DRS active, minimise drag",
+    description="Top speed ~345 km/h, minimal wing angle, DRS open, efficiency-critical",
     bounds_overrides={
-        0: [280.0, 360.0],   # speed_kmh: high only
-        1: [0.0, 15.0],      # wing_angle_deg: low
+        0: [345.0, 345.0],         # speed_kmh: FIXED at top speed
+        1: [TRAIN_WING_MIN, 29.0], # wing_angle: physical constraint at 345 km/h
+        3: [TRAIN_DF_MIN, TRAIN_DF_MAX],
+        4: [TRAIN_DRAG_MIN, TRAIN_DRAG_MAX],
     },
     fixed_params={
-        2: 1,                 # drs_active: always on
+        2: 1,  # drs_active: always on
     },
-    penalty_terms=[_drag_penalty_fn(weight=SCENARIO_PENALTY_DRAG)],
+    weights={"w_stability": 0.4, "w_efficiency": 0.3, "w_power": 0.3},
 )
 
 SCENARIO_S2_MONACO = ScenarioDefinition(
     name="S2 Monaco High-Downforce",
     code="S2_monaco",
-    description="Street circuit: low speed, high wing angle, no DRS, downforce > 3000N",
+    description="Top speed ~300 km/h, high wing angle, no DRS, downforce priority",
     bounds_overrides={
-        0: [80.0, 200.0],    # speed_kmh: low only
-        1: [20.0, 40.0],     # wing_angle_deg: high
-        3: [3000.0, 10000.0], # downforce_n: high
+        0: [300.0, 300.0],              # speed_kmh: FIXED
+        1: [TRAIN_WING_MIN, TRAIN_WING_MAX],  # wing: full range feasible
+        3: [TRAIN_DF_MIN, TRAIN_DF_MAX],
+        4: [TRAIN_DRAG_MIN, TRAIN_DRAG_MAX],
     },
     fixed_params={
-        2: 0,                 # drs_active: always off
+        2: 0,  # drs_active: always off
     },
-    penalty_terms=[_downforce_penalty_fn(threshold=3000.0, weight=SCENARIO_PENALTY_DOWNFORCE)],
+    weights={"w_stability": 0.5, "w_efficiency": 0.4, "w_power": 0.1},
 )
 
 SCENARIO_S3_BALANCED = ScenarioDefinition(
-    name="S3 Balanced (Optional)",
+    name="S3 Balanced",
     code="S3_balanced",
-    description="Medium-speed balanced setup: 200 < v < 280, moderate wing angle, DRS free",
+    description="Top speed ~320 km/h, moderate wing, DRS free, balanced efficiency/stability",
     bounds_overrides={
-        0: [200.0, 280.0],   # speed_kmh: medium
-        1: [10.0, 30.0],     # wing_angle_deg: medium
+        0: [320.0, 320.0],
+        1: [TRAIN_WING_MIN, TRAIN_WING_MAX],
+        3: [TRAIN_DF_MIN, TRAIN_DF_MAX],
+        4: [TRAIN_DRAG_MIN, TRAIN_DRAG_MAX],
     },
+    weights={"w_stability": 0.4, "w_efficiency": 0.4, "w_power": 0.2},
 )
 
 SCENARIO_S4_WET = ScenarioDefinition(
-    name="S4 Wet/Inter (Optional)",
+    name="S4 Wet",
     code="S4_wet",
-    description="Wet conditions: moderate speed, high wing angle, no DRS, stability priority",
+    description="Top speed ~290 km/h, high wing angle, no DRS, stability above all",
     bounds_overrides={
-        0: [100.0, 250.0],   # speed_kmh: moderate-max
-        1: [15.0, 35.0],     # wing_angle_deg: moderately high
+        0: [290.0, 290.0],
+        1: [TRAIN_WING_MIN, TRAIN_WING_MAX],
+        3: [TRAIN_DF_MIN, TRAIN_DF_MAX],
+        4: [TRAIN_DRAG_MIN, TRAIN_DRAG_MAX],
     },
     fixed_params={
-        2: 0,                 # drs_active: off for wet safety
+        2: 0,  # drs_active: off for wet safety
     },
+    weights={"w_stability": 0.6, "w_efficiency": 0.2, "w_power": 0.2},
 )
 
 # Master list

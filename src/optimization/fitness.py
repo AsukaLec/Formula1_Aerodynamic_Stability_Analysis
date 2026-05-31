@@ -221,3 +221,86 @@ def benchmark_sphere(dim=5):
         def __call__(self, X):
             return self.evaluate(X)
     return _Sphere()
+
+
+# --- Multi-Objective Composite Fitness --------------------------------------
+
+
+class FitnessMultiObjective(FitnessRiskSensitive):
+    """Multi-objective fitness: weighted sum of stability + efficiency - power - uncertainty.
+
+    F(x) = w1 * stability(x)/100 + w2 * efficiency(x) - w3 * power(x) - lambda * sigma(x)
+
+    This creates a non-trivial Pareto landscape because:
+      - stability ↑  usually means  downforce ↑ → drag ↑ → efficiency ↓, power ↑
+      - efficiency ↑ usually means  drag ↓ → downforce ↓ → stability ↓
+      - power ↓       usually means  speed ↓ or drag ↓ → stability ↓
+
+    The three objectives are fundamentally in tension — PSO must trade off.
+    """
+
+    def __init__(self, model_wrapper, w_stability=0.5, w_efficiency=0.3, w_power=0.2,
+                 lambda_risk=1.0, eps=1e-6):
+        super().__init__(model_wrapper, lambda_risk=lambda_risk)
+        self.w_stability = w_stability
+        self.w_efficiency = w_efficiency
+        self.w_power = w_power
+        self.eps = eps
+
+        # Normalisation constants (computed once from training data)
+        self._max_efficiency = None
+        self._max_power = None
+
+    def _set_norm_constants(self, max_efficiency, max_power):
+        """Set normalisation constants. Called once after fitness construction."""
+        self._max_efficiency = max_efficiency if max_efficiency else 1.0
+        self._max_power = max_power if max_power else 1.0
+
+    def _compute_objectives(self, X):
+        """Compute the three raw objectives for each row in X.
+
+        Returns
+        -------
+        stability : np.ndarray (N,)
+        efficiency : np.ndarray (N,)
+        power : np.ndarray (N,)
+        """
+        X = np.asarray(X, dtype=np.float64)
+        mu, sigma = self.model.predict_with_uncertainty(X)
+        stability = np.clip(mu, 0, 100)
+
+        downforce = X[:, 3]
+        drag = X[:, 4]
+        speed = X[:, 0]
+
+        efficiency = downforce / (drag + self.eps)
+
+        if self._max_power is not None:
+            power = (drag * speed) / self._max_power
+        else:
+            power = (drag * speed) / 1.0
+
+        return stability, efficiency, power, sigma
+
+    def evaluate(self, X):
+        stability, efficiency, power, sigma = self._compute_objectives(X)
+
+        eff_norm = np.clip(efficiency / (self._max_efficiency or 1.0), 0, 1)
+        pow_norm = np.clip(power, 0, 1)
+
+        fitness = (
+            self.w_stability * stability / 100.0
+            + self.w_efficiency * eff_norm
+            - self.w_power * pow_norm
+            - self.lambda_risk * sigma / 100.0
+        )
+        return np.asarray(fitness, dtype=np.float64)
+
+    def evaluate_components(self, X):
+        """Return (stability, efficiency_raw, power_raw, sigma, fitness)."""
+        stability, efficiency, power, sigma = self._compute_objectives(X)
+        fitness = self.evaluate(X)
+        return stability, efficiency, power, sigma, fitness
+
+    def __call__(self, X):
+        return self.evaluate(X)

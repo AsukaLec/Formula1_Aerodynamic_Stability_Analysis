@@ -27,6 +27,8 @@ DeepEnsemble 不确定性估计
     → 风险敏感 PSO (Fitness = μ - λσ)
     → 高性能参数区域发现 (PSO 搜索轨迹 → 参数区间/解簇)
     → 主动学习闭环 (可选)
+    → 多目标 tradeoff 优化 (stability + efficiency + power) ✅ T06-Ext完成
+    → Landscape Diagnosis (翼角敏感性/梯度/聚类/数据结构A-E) ✅ T06-Ext完成
     → Porpoising 风险可解释性
     → 多场景决策可解释性体系
 ```
@@ -43,6 +45,8 @@ DeepEnsemble 不确定性估计
 | ④ | 多场景可解释性 | T06 | SHAP+雷达图+灵敏度+反事实分析 |
 | ⑤ | 6 模型系统对比 | T03 | 从 Linear 到 DeepEnsemble 的完整谱系 |
 | ⑥ | 高性能参数区域发现 | T04-Ext | PSO 搜索轨迹 → Top-N% → 统计 → 聚类, 输出"参数区间"而非单点 |
+| ⑦ | 多目标 tradeoff 优化 | T06-Ext | 稳定性/气动效率/功率消耗 三维 Pareto 前沿，解决单目标景观过平导致 PSO 意义弱的问题 |
+| ⑧ | Landscape Diagnosis | T06-Ext | 翼角敏感性扫描/梯度分析/偏相关/DBSCAN聚类/等高线叠加 — 系统验证代理模型饱和现象，定位优化瓶颈根因 |
 
 ---
 
@@ -76,7 +80,7 @@ T01 → T02 → T03 → T04 → T06 → T08 → T09 → T10
 
 - **核心路径**: T01 → T02 → T03(XGBoost后备) → T04(标准+自适应) → T06(S1+S2) → T08(对比+消融) → T09 → T10
 - **加分路径**: 核心路径 + T04(风险敏感) + T06(SHAP+灵敏度) + T07(Porpoising)
-- **满分路径**: 加分路径 + T05(主动学习) + T06(反事实+决策规则)
+- **满分路径**: 加分路径 + T05(主动学习) + T06(反事实+决策规则+多目标扩展+Landscape Diagnosis+收尾等高线图) + T08(消融验证多目标 vs 单目标)
 
 ---
 
@@ -87,3 +91,4 @@ T01 → T02 → T03 → T04 → T06 → T08 → T09 → T10
 | NN 模型精度不足 | 回退到 XGBoost → Random Forest |
 | DeepEnsemble 耗时过长 | 降级 MC-Dropout 或单模型 + 密度惩罚 |
 | PSO 收敛不稳定 | 增加运行次数、调参、引入重启机制 |
+| 单目标优化景观过平，PSO价值弱 | 引入多目标 tradeoff (效率+功耗)，使优化问题复杂化 |

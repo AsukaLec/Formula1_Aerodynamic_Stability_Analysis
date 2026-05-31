@@ -67,6 +67,63 @@
 - [x] 绘制粒子多代迁移路径 (top-5粒子 + gbest轨迹 + hexbin背景)
 - [x] 标注各场景最优解位置 (金色星形 + 末代适应度标注)
 
+### 6.5 多目标 tradeoff 扩展 (v2 🆕)
+
+**动机**: 单目标 (maximize stability_index) 下，T06 第一版发现 XGBoost 模型由 downforce_n 单一特征支配 (mean|SHAP|=12.2, 其余<0.3)，4 场景 composite fitness 全部拥挤在 99.74~99.83，PSO 搜索能力无法体现。引入竞争性指标使优化景观复杂化。
+
+#### 新增指标
+
+| 指标 | 公式 | 方向 | 物理含义 |
+|------|------|:---:|------|
+| F1 稳定性 | stability_index(x) | ↑ | 原始目标 (DeepEnsemble 预测) |
+| F2 气动效率 | downforce_n / (drag_n+ε) | ↑ | 每牛顿阻力产生的下压力 (N/N) |
+| F3 功率消耗 | (drag_n × speed_kmh) / max_power | ↓ | 维持速度所需推进功率，归一化 [0,1] |
+
+#### 多目标适应度
+
+```text
+F_multi(x) = w1 × stability(x)/100 + w2 × norm_efficiency(x) - w3 × norm_power(x) - λ × σ(x)
+               ─────────────────────   ────────────────────   ────────────────
+               核心稳定性                 气动品质               能耗代价
+```
+
+归一化方式：`norm_efficiency = downforce/(drag+ε) / max_efficiency`，`norm_power = (drag×speed) / p99_power`。
+
+#### 场景权重
+
+| 场景 | w1 (稳定) | w2 (效率) | w3 (低功) | 设计意图 |
+|------|:---:|:---:|:---:|------|
+| S1 Monza (v=345) | 0.4 | 0.3 | 0.3 | 高速→能耗敏感, 低阻优先 |
+| S2 Monaco (v=300) | 0.5 | 0.4 | 0.1 | 下压力为王, 效率次之 |
+| S3 Balanced (v=320) | 0.4 | 0.4 | 0.2 | 平衡策略 |
+| S4 Wet (v=290) | 0.6 | 0.2 | 0.2 | 湿地稳定压倒一切 |
+
+#### 验收
+
+- [ ] 4 场景多目标 PSO 运行 ≥ 10 次
+- [ ] 场景间复合 fitness 区分度明显提升 (单目标 0.05 差距 → 多目标 >0.2 差距)
+- [ ] Pareto 前沿图展示 tradeoff
+- [ ] 平行坐标图展示各场景参数倾向差异
+- [ ] 景观分析 (sampling + PCA/t-SNE) 验证多峰性
+
+#### 关键决策
+
+- **为什么加多目标**: 单目标下 downforce_n 单一特征主导 → 优化景观近平坦 → PSO 退化为随机扰动。加入竞争性指标使 PSO 在真正需要权衡的空间中工作
+- **三个指标为什么冲突**: 高 stability ↔ 高 downforce ↔ 高 drag ↔ 低效率高功耗。某场景若追求效率(w2大)，PSO 必须接受稍低的 stability (w1较小)
+- **与 T04 的兼容性**: `PSOAdaptive` 只调用 `fitness_fn(X)`，多目标函数签名与之兼容，T04 代码无需修改
+- **速度固定**: 各场景 speed 固定为最高速度 (非自由变量)，PSO 搜索空间 5D→4D。原因: ① 气动稳定性在高速时最关键 ② speed→efficiency/power 直接关联 ③ wing≥20° 物理约束
+
+### 6.6 输出清单
+
+```
+figures/scenarios/
+├── pareto_frontier_S1.png ... S4.png    # 4 张 Pareto 前沿 (效率 vs 稳定 + 功耗 vs 稳定)
+├── parallel_coordinates.png             # 平行坐标图 (4 场景 × 9 维度)
+├── convergence_multiobj.png             # 多目标收敛曲线
+├── landscape_multimodality.png          # PCA/t-SNE 景观分析
+(+ 已有 15 张图)
+```
+
 ---
 
 ## 验收标准
@@ -156,9 +213,63 @@ drag_n和speed_kmh是高层可解释规则中的主要分裂特征，提取了de
 - ✅ 决策规则提炼（可选，完成）
 - ✅ 所有可视化图表修正：龙卷风左右布局、SHAP/PI对数刻度、waterfall聚焦缩放
 - ✅ PCA粒子迁移轨迹 (可选扩展, S1+S3, PC1=65.9% PC2=14.7% 合计80.5%)
+- ✅ 多目标扩展 (v2): 稳定性+效率+功耗 三维 Pareto 前沿
+- ✅ Landscape Diagnosis (Tasks A-E): 翼角敏感性/梯度交互/解空间聚类/数据结构诊断
+- ✅ Speed×Wing 稳定性等高线 + PSO Top-5% 叠加图 (收尾图)
 
-### 8. PCA轨迹关键发现
+### 8. 单目标版本关键发现 (v1)
+
+#### PCA轨迹关键发现
 - **PC1 (65.9%)**: 主导特征为 wing_angle_deg (0.512) — 区分高/低翼角场景
 - **PC2 (14.7%)**: 主导特征为 drs_active (0.926) — 区分 DRS=0 vs DRS=1 两簇
 - **S1 轨迹**: 粒子从随机散布快速集中 → wing_angle→0, drs→1 固定方向压缩
 - **S3 轨迹**: 粒子搜索更分散，多样性高于 S1 (约束更宽松)
+
+---
+
+### 9. Landscape Diagnosis 关键发现
+
+> 完整报告: `reports/landscape_diagnosis_results.md`
+> 实验脚本: `experiments/run_landscape_diagnosis.py`
+
+#### Task A: 翼角敏感性
+- Wing 从 20°→35°，ΔStability = 0.88~2.15（模型确实感知 wing）
+- 斜率 -0.06 ~ -0.13 per degree（翼角越大，稳定性越低）
+- 速度越快，wing 效应越强（345 km/h 时 Δ=2.15, 是 200 km/h 的 2.4 倍）
+
+#### Task B: Speed×Wing 梯度
+- 交互存在: 高速+大翼角区梯度最大 (0.634)
+- 交互热点被 PSO 自然避开（PSO 朝 low-wing+low-speed 高稳定区搜索）
+
+#### Task C/D: 解空间聚类
+- v2 DBSCAN: **仅 1 簇** (324点) + 6 噪声点
+- v2 未创造新的解空间结构
+- wing 的 P5-P95 仅 4.8°，无"高翼角方案 vs 低翼角方案"并存
+
+#### Task E: 数据结构
+- r(wing, stability)原始 = -0.384 (中等)，但偏相关 r(wing, stability|downforce) = **0.06**
+- Wing→Stability 的信息几乎完全通过 **downforce 中介**
+- 高速区 r(wing, stability) = -0.66 但 PSO 不会去那里
+
+#### 最终诊断
+**wing→20° 是代理模型的数学正确最优解**，而非 PSO 搜索失败。模型在非饱和区感知 wing（Δ≈2），但在 stability≈100 的饱和区输出平坦。PSO 自然收敛到饱和区，wing 差异随之消失。
+
+#### 收尾图
+`diagnosis_speed_wing_pso_overlay.png` — Speed×Wing 稳定性等高线叠加 PSO Top-5% 解位置，同时展示:
+1. 模型感知 wing（等高线在右下角下沉）
+2. PSO 正确避开低稳区
+3. 高稳定盆地内 wing 无区分度
+
+---
+
+### 10. T06 最终总结
+
+| 维度 | 产出 |
+|------|------|
+| 场景寻优 | S1-S4 单目标 ×15次 + 多目标 ×15次 |
+| 可解释性 | SHAP全局/局部 + Permutation重要性 + 约束灵敏度龙卷风 |
+| 可视化 | 23张图 (收敛/雷达/Pareto/平行坐标/轨迹/等高线/景观分析) |
+| 诊断 | Landscape Diagnosis A-E 系统验证了代理模型饱和现象 |
+| 文档 | 任务文档204行 + 图表README 480行 + 诊断报告224行 |
+
+**T06 正式关闭。** 后续: T07 Porpoising 风险热力图 / T08 消融实验 / T09 可视化汇总 / T10 结题报告

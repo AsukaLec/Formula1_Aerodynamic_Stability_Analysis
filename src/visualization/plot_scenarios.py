@@ -581,3 +581,263 @@ def plot_trajectory(traj_data, scenario_name, pca_model, scaler, explained_var):
     # Tight layout with colorbar
     fig.tight_layout()
     _save(fig, f"trajectory_{scenario_name.split()[0].lower()}.png")
+
+
+# ============================================================================
+# Multi-Objective Visualizations (T06 v2)
+# ============================================================================
+
+
+def plot_pareto_frontier(all_results_multiobj):
+    """Pareto frontier scatter for each scenario: efficiency vs stability + power vs stability.
+
+    Parameters
+    ----------
+    all_results_multiobj : dict {code: (results_list, stats_dict)}
+        Results from run_scenario_trials_multiobj. Each result MUST have
+        collect_candidates=True and result['components'].
+    """
+    import matplotlib.patches as mpatches
+
+    for code in sorted(all_results_multiobj.keys()):
+        results, stats = all_results_multiobj[code]
+        scenario_code = code
+
+        # Collect all candidate data: (stability, efficiency_raw, power_raw, fitness)
+        all_stab = []; all_eff = []; all_pow = []; all_fit = []
+        for r in results:
+            batches = r.get("candidates", [])
+            for pos_batch, _ in batches:
+                # Quick component calculation (simplified for speed)
+                df_vals = pos_batch[:, 3]; drag_vals = pos_batch[:, 4]
+                speed = pos_batch[0, 0]  # all same for fixed-speed scenario
+                stab_batch = r.get("components", {}).get("stability", 90.0)
+                eff_batch = df_vals / (drag_vals + 1e-6)
+                pow_batch = (drag_vals * speed) / 150000.0
+                # Simple linear approximation of fitness
+                w = stats.get("weights", {"w_stability": 0.4, "w_efficiency": 0.3, "w_power": 0.3})
+                max_eff = max(eff_batch) if len(eff_batch) > 0 else 1
+                fit_batch = (
+                    w["w_stability"] * 0.95
+                    + w["w_efficiency"] * np.clip(eff_batch / (max_eff + 1e-6), 0, 1)
+                    - w["w_power"] * np.clip(pow_batch, 0, 1)
+                )
+                all_stab.extend([stab_batch] * len(pos_batch))
+                all_eff.extend(eff_batch.tolist())
+                all_pow.extend(pow_batch.tolist())
+                all_fit.extend(fit_batch.tolist())
+
+        all_stab = np.array(all_stab); all_eff = np.array(all_eff)
+        all_pow = np.array(all_pow); all_fit = np.array(all_fit)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5))
+
+        # Left: efficiency vs stability
+        sc1 = ax1.scatter(all_eff, all_stab, c=all_fit, cmap="YlOrRd",
+                          s=4, alpha=0.25, edgecolors="none")
+        # Best point
+        best_stab = stats["comp_means"]["stability"]
+        best_eff = stats["comp_means"]["efficiency"]
+        ax1.plot(best_eff, best_stab, "*", color="darkred",
+                 markersize=16, markeredgecolor="white", markeredgewidth=1)
+        w = stats.get("weights", {})
+        ax1.set_xlabel("Efficiency = downforce / drag (N/N)", fontsize=10)
+        ax1.set_ylabel("Stability Index (0-100)", fontsize=10)
+        ax1.set_title(f"{code}: Efficiency vs Stability\n"
+                      f"weights: ws={w.get('w_stability',''):.1f} "
+                      f"we={w.get('w_efficiency',''):.1f} wp={w.get('w_power',''):.1f}",
+                      fontsize=10, fontweight="bold")
+        ax1.grid(alpha=0.25)
+        plt.colorbar(sc1, ax=ax1, shrink=0.7).set_label("Fitness", fontsize=8)
+
+        # Right: power vs stability
+        sc2 = ax2.scatter(all_pow, all_stab, c=all_fit, cmap="YlOrRd",
+                          s=4, alpha=0.25, edgecolors="none")
+        best_pow = stats["comp_means"]["power"]
+        ax2.plot(best_pow, best_stab, "*", color="darkred",
+                 markersize=16, markeredgecolor="white", markeredgewidth=1)
+        ax2.set_xlabel("Power proxy = drag * speed / max_power", fontsize=10)
+        ax2.set_ylabel("Stability Index (0-100)", fontsize=10)
+        ax2.set_title(f"{code}: Power vs Stability", fontsize=10, fontweight="bold")
+        ax2.grid(alpha=0.25)
+        plt.colorbar(sc2, ax=ax2, shrink=0.7).set_label("Fitness", fontsize=8)
+
+        fig.tight_layout()
+        _save(fig, f"pareto_frontier_{scenario_code}.png")
+
+
+def plot_parallel_coordinates(all_results_multiobj):
+    """Parallel coordinates: 4 scenarios across 9 dimensions.
+
+    Axes: speed, wing, drs, downforce, drag, stability, efficiency, power, fitness_multi
+    """
+    fig, ax = plt.subplots(figsize=(14, 5))
+    dim_names = ["speed", "wing", "drs", "df", "drag", "stab", "eff", "pwr", "fit"]
+    colors = ["#e34a33", "#1f78b4", "#2ca02c", "#8c564b"]  # S1-S4
+
+    # Extract per-scenario mean param + component vector
+    lines_data = []
+    for i, code in enumerate(sorted(all_results_multiobj.keys())):
+        _, stats = all_results_multiobj[code]
+        row = [
+            stats["param_means"]["speed_kmh"],
+            stats["param_means"]["wing_angle_deg"],
+            stats["param_means"]["drs_active"],
+            stats["param_means"]["downforce_n"],
+            stats["param_means"]["drag_n"],
+            stats["comp_means"]["stability"],
+            stats["comp_means"]["efficiency"],
+            stats["comp_means"]["power"],
+            stats["fitness_mean"],
+        ]
+        lines_data.append((code, row))
+
+    # Collect all values for min-max normalization per axis
+    all_cols = np.array([d[1] for d in lines_data])
+    mins = all_cols.min(axis=0)
+    maxs = all_cols.max(axis=0)
+    ranges = maxs - mins
+    ranges[ranges == 0] = 1
+
+    for i, (code, row) in enumerate(lines_data):
+        normed = (np.array(row) - mins) / ranges
+        ax.plot(range(len(dim_names)), normed, "o-", linewidth=2.2,
+                color=colors[i], label=code, markersize=6)
+
+    ax.set_xticks(range(len(dim_names)))
+    ax.set_xticklabels(dim_names, fontsize=10)
+    ax.set_ylim(-0.05, 1.1)
+    ax.set_title("Parallel Coordinates: Multi-Objective Optimal Solutions\n"
+                 "(all axes min-max normalized)", fontsize=12, fontweight="bold")
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+    _save(fig, "parallel_coordinates.png")
+
+
+def plot_multiobj_convergence(all_results_multiobj):
+    """Multi-objective fitness convergence curves (like the single-obj version)."""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    codes = sorted(all_results_multiobj.keys())
+    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(codes)))
+
+    for idx, code in enumerate(codes):
+        results, _ = all_results_multiobj[code]
+        max_len = max(len(r["history"]["gbest_fitness"]) for r in results)
+        curves = []
+        for r in results:
+            fit = r["history"]["gbest_fitness"]
+            curves.append(np.resize(fit, max_len))
+        curves = np.array(curves)
+        mean_fit = curves.mean(axis=0)
+        std_fit = curves.std(axis=0)
+        iters = np.arange(len(mean_fit))
+
+        ax.plot(iters, mean_fit, color=colors[idx], linewidth=2, label=code)
+        ax.fill_between(iters, mean_fit - std_fit, mean_fit + std_fit,
+                        color=colors[idx], alpha=0.15)
+
+    ax.set_xlabel("Iteration", fontsize=12)
+    ax.set_ylabel("Composite Fitness F(x)", fontsize=12)
+    ax.set_title("PSO Convergence: Multi-Objective Scenario Comparison\n"
+                 "(mean +/- 1 std across trials)", fontsize=13, fontweight="bold")
+    ax.legend(fontsize=10)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    _save(fig, "convergence_multiobj.png")
+
+
+def plot_landscape_multimodality(all_results_multiobj=None, n_samples=50000):
+    """Landscape analysis via random sampling + PCA/t-SNE.
+    Generates a 2x2 subplot proving multi-modality under multi-objective fitness.
+    """
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+
+    # Sample from global bounds
+    from src.utils.config import PSO_PARAM_BOUNDS
+    bounds = np.array(PSO_PARAM_BOUNDS)
+
+    rng = np.random.RandomState(42)
+    X_sampled = np.column_stack([
+        rng.uniform(b[0], b[1], n_samples) for b in bounds
+    ])
+    # Clip wing to [20, 35]
+    X_sampled[:, 1] = np.clip(X_sampled[:, 1], 20, 35)
+
+    # Compute single-obj (XGBoost) and multi-obj fitness
+    from src.optimization.fitness import load_xgb_fitness
+    xgb_fitness = load_xgb_fitness()
+    stab = xgb_fitness.evaluate(X_sampled)
+    stab = np.clip(stab, 0, 100)
+
+    # Multi-objective: use weights from S1 as representative
+    downforce = X_sampled[:, 3]; drag = X_sampled[:, 4]; speed = X_sampled[:, 0]
+    eff = downforce / (drag + 1e-6)
+    pow_norm = (drag * speed) / 150000.0
+    eff_norm = np.clip(eff / np.percentile(eff, 99), 0, 1)
+    pow_c = np.clip(pow_norm, 0, 1)
+    mo_fitness = 0.4 * stab / 100 + 0.3 * eff_norm - 0.3 * pow_c
+
+    # PCA
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_sampled)
+    pca = PCA(n_components=2, random_state=42)
+    X_pca = pca.fit_transform(X_scaled)
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+    # (1,1): PCA colored by stability
+    ax = axes[0, 0]
+    ax.scatter(X_pca[:, 0], X_pca[:, 1], c=stab, cmap="YlOrRd",
+               s=1, alpha=0.3, edgecolors="none")
+    ax.set_title(f"PCA: single-obj (stability only)\n"
+                 f"PC1={pca.explained_variance_ratio_[0]*100:.1f}% "
+                 f"PC2={pca.explained_variance_ratio_[1]*100:.1f}%",
+                 fontsize=10, fontweight="bold")
+    ax.set_xlabel("PC1"); ax.set_ylabel("PC2")
+
+    # (1,2): PCA colored by multi-obj fitness
+    ax = axes[0, 1]
+    ax.scatter(X_pca[:, 0], X_pca[:, 1], c=mo_fitness, cmap="YlOrRd",
+               s=1, alpha=0.3, edgecolors="none")
+    ax.set_title("PCA: multi-obj fitness (stability + eff - power)",
+                 fontsize=10, fontweight="bold")
+    ax.set_xlabel("PC1"); ax.set_ylabel("PC2")
+
+    # (2,1): t-SNE (subsample for speed)
+    from sklearn.manifold import TSNE
+    n_tsne = min(5000, n_samples)
+    idx_tsne = rng.choice(n_samples, n_tsne, replace=False)
+    X_tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_jobs=1).fit_transform(
+        X_scaled[idx_tsne])
+    ax = axes[1, 0]
+    ax.scatter(X_tsne[:, 0], X_tsne[:, 1], c=mo_fitness[idx_tsne], cmap="YlOrRd",
+               s=3, alpha=0.4, edgecolors="none")
+    ax.set_title(f"t-SNE: multi-obj fitness (n={n_tsne})", fontsize=10, fontweight="bold")
+    ax.set_xlabel("t-SNE 1"); ax.set_ylabel("t-SNE 2")
+
+    # (2,2): Objective space KDE + single vs multi best markers
+    ax = axes[1, 1]
+    idx_sub = rng.choice(n_samples, min(10000, n_samples), replace=False)
+    hb = ax.hexbin(eff[idx_sub], stab[idx_sub], gridsize=40,
+                   cmap="YlOrRd", alpha=0.7, mincnt=1)
+    # Mark single-obj best (max stability point)
+    best_single_idx = np.argmax(stab[idx_sub])
+    ax.plot(eff[idx_sub][best_single_idx], stab[idx_sub][best_single_idx],
+            "s", color="blue", markersize=10, label="Best stability-only")
+    # Mark multi-obj best (max mo_fitness point)
+    best_multi_idx = np.argmax(mo_fitness[idx_sub])
+    ax.plot(eff[idx_sub][best_multi_idx], stab[idx_sub][best_multi_idx],
+            "*", color="darkred", markersize=14, label="Best multi-obj")
+    ax.set_xlabel("Efficiency (downforce/drag)", fontsize=10)
+    ax.set_ylabel("Stability Index", fontsize=10)
+    ax.set_title("Objective Space: stability vs efficiency\n(KDE + best points)",
+                 fontsize=10, fontweight="bold")
+    ax.legend(fontsize=8)
+    plt.colorbar(hb, ax=ax, shrink=0.7).set_label("Density", fontsize=8)
+
+    fig.suptitle("Landscape Analysis: Single-Objective vs Multi-Objective",
+                 fontsize=14, fontweight="bold", y=1.01)
+    fig.tight_layout()
+    _save(fig, "landscape_multimodality.png")

@@ -1,40 +1,41 @@
 {
   "scenario": "S2_monaco",
   "n_trials": 15,
-  "model_type": "risk_sensitive_ensemble",
+  "model_type": "multi_objective_ensemble",
   "lambda_risk": 1.0,
-  "fitness_mean": 99.78801773822245,
-  "fitness_std": 4.128595552248995e-06,
-  "fitness_min": 99.78800974204205,
-  "fitness_max": 99.78802348487079,
+  "weights": {
+    "w_stability": 0.5,
+    "w_efficiency": 0.4,
+    "w_power": 0.1
+  },
+  "fitness_mean": 0.8939305512001475,
+  "fitness_std": 5.570957503453768e-07,
   "param_means": {
-    "speed_kmh": 158.06673374529962,
+    "speed_kmh": 300.0,
     "wing_angle_deg": 20.0,
     "drs_active": 0.0,
-    "downforce_n": 3000.0,
-    "drag_n": 0.0
+    "downforce_n": 4454.167692079639,
+    "drag_n": 18.0
   },
   "param_stds": {
-    "speed_kmh": 0.03894790489749652,
+    "speed_kmh": 0.0,
     "wing_angle_deg": 0.0,
     "drs_active": 0.0,
-    "downforce_n": 0.0,
+    "downforce_n": 1.3028550705035455,
     "drag_n": 0.0
   },
-  "param_mins": {
-    "speed_kmh": 158.00198105581984,
-    "wing_angle_deg": 20.0,
-    "drs_active": 0.0,
-    "downforce_n": 3000.0,
-    "drag_n": 0.0
+  "iters_mean": 31.733333333333334,
+  "converged_rate": 1.0,
+  "comp_means": {
+    "stability": 99.81514414151509,
+    "efficiency": 247.4537469236607,
+    "power": 0.03458286992611047,
+    "sigma": 0.1686911121942103
   },
-  "param_maxs": {
-    "speed_kmh": 158.1307449219695,
-    "wing_angle_deg": 20.0,
-    "drs_active": 0.0,
-    "downforce_n": 3000.0,
-    "drag_n": 0.0
-  },
-  "iters_mean": 32.733333333333334,
-  "converged_rate": 1.0
+  "comp_stds": {
+    "stability": 0.0016905017350341432,
+    "efficiency": 0.07238083322903778,
+    "power": 1.436487510905098e-17,
+    "sigma": 0.0008064186652743503
+  }
 }
