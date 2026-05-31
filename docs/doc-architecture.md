@@ -44,20 +44,24 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   │   ├── pso_risk_sensitive.py      # 风险敏感 PSO
 │   │   ├── fitness.py                 # 适应度函数
 │   │   └── active_learning.py         # 主动学习 (可选)
+│   ├── analysis/                       # 优化结果分析
+│   │   └── region_discovery.py        # 高性能参数区域发现
 │   ├── scenarios/                     # 多场景
 │   │   ├── scenario_def.py
 │   │   └── scenario_runner.py
 │   ├── visualization/                 # 可视化
 │   │   ├── plot_eda.py
 │   │   ├── plot_results.py
+│   │   ├── plot_regions.py            # 高性能区域可视化
 │   │   └── plot_porpoising.py
 │   └── utils/                         # 工具
-│       ├── config.py
+│       ├── config.py                   # 全局配置 (模型/PSO/HPR参数/路径)
 │       └── metrics.py
 │
 ├── experiments/                       # 实验脚本
 │   ├── run_model_comparison.py
 │   ├── run_pso_comparison.py
+│   ├── run_region_discovery.py
 │   └── run_ablation.py
 │
 ├── outputs/                           # 运行输出
@@ -66,9 +70,11 @@ Formula1_Aerodynamic_Stability_Analysis/
 │
 ├── figures/                           # 图表
 │   ├── eda/
+│   │   └── README.md                   # 各图含义与数值说明 (自动生成, 见 plot_eda.py)
 │   ├── models/
 │   ├── pso/
 │   ├── scenarios/
+│   ├── regions/                        # 高性能参数区域发现图
 │   └── porpoising_risk/
 │
 ├── reports/                           # 报告
@@ -128,6 +134,9 @@ raw/actaruslab_f1_telemetry_2026.csv
     │              ↓                       ↓
     │      pso_*.py                 scenario_runner.py
     │      fitness.py               ─── outputs/scenarios/
+    │              │
+    │              ├──→ region_discovery.py
+    │              │    (PSO 候选解 → 参数区 间/解簇)
     │              │
     │              ↓
     │      experiments/ → experiment_results.md

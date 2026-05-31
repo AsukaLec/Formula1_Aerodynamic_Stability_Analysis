@@ -62,11 +62,14 @@ docs/tasks/
 
 ## 当前状态
 
-- 项目处于 **T01 已完成**, T02 待开始
+- 项目处于 **T04 已完成**, T05/T06 待开始
 - `src/preprocessing/` 已完成 (cleaner, normalizer, feature_engineering)
+- `src/models/` 已完成 (baseline, mlp, tabnet_model, deep_ensemble, evaluate)
+- `src/optimization/` 已完成 (pso_base, pso_adaptive, pso_risk_sensitive, fitness)
+- `src/analysis/` 已完成 (region_discovery — 高性能参数区域发现)
 - `src/utils/config.py` 已创建
 - `data/raw/` 已有原始数据集
-- T01 任务文档已移至 `docs/tasks/done/`
+- T01, T02, T03, T04 任务文档已移至 `docs/tasks/done/`
 
 ---
 
