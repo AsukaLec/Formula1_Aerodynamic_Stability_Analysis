@@ -119,7 +119,7 @@ src/optimization/
 | 1 | 离散变量处理 | 连续优化 + clamp to [0,1] + 评估时 rounding | 避免二进制 PSO 特殊规则，保持统一框架 |
 | 2 | 边界策略 | clamp (默认), reflect (可选) | clamp 简单可靠，OOD 由风险敏感 fitness 惩罚 |
 | 3 | 自适应 α 值 | α=1.0 (线性衰减) | 非线性 (α=2.0) 在 Rastrigin 上更优但方差大；线性衰减在代理模型上稳定 |
-| 4 | PSO 默认参数 | N=50, w_start=0.9, w_end=0.4, c1=c2=2.0, max_iter=60 | 经典值，经验验证有效 |
+| 4 | PSO 默认参数 | N=50, w_start=0.9, w_end=0.4, c1=c2=2.0, max_iter=100 | 经典值，经验验证有效 |
 | 5 | λ 搜索范围 | {0.0, 0.5, 1.0, 1.5, 2.0} | λ=1.0~1.5 在 OOD 规避与最优性之间取得平衡 |
 | 6 | 推理模型选择 | XGBoost (主), DeepEnsemble (风险敏感) | XGBoost 0.24ms vs RF 37ms; DeepEnsemble 提供 σ |
 | 7 | 批量评估 | 每代所有粒子一次 batch predict | GPU 友好，避免 per-particle Python 循环 |
@@ -179,6 +179,6 @@ figures/regions/                       # 输出图表
 | # | 决策 | 方案 | 原因 |
 |---|------|------|------|
 | 1 | 数据来源 | PSO 全群体每代位置+适应度 (collect_candidates=True) | 单次 PSO 仅 gbest 不足以绘制区域 |
-| 2 | 试验次数 | 30 次独立 PSO | 每次产出 ~50×(60+1)≈3000 候选, 确保覆盖 |
+| 2 | 试验次数 | 30 次独立 PSO | 每次产出 ~50×(100+1)≈5050 候选, 确保覆盖 |
 | 3 | 聚类方法 | DBSCAN (自动 eps) | K-Means 需预设 K, 不如 DBSCAN 适应未知结构 |
 | 4 | 可视化重点 | Top 5% 散点矩阵 + 参数范围条形图 + 聚类投影 | 三者互补: 分布/区间/模态 |
