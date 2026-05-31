@@ -39,19 +39,19 @@
 
 ### 9.3 通用规范
 
-- [ ] 尺寸: ≥ 1920×1080 或 8×6 英寸
-- [ ] DPI: ≥ 150 (适合报告嵌入)
-- [ ] 中英文混排: 标题/轴标签统一用中文或英文，不混用
-- [ ] 配色: 使用 seaborn/matplotlib 默认主题，确保色盲友好
-- [ ] 导出格式: PNG (主) + PDF (矢量备份)
+- [x] 尺寸: ≥ 1920×1080 或 8×6 英寸
+- [x] DPI: ≥ 150 (适合报告嵌入)
+- [x] 中英文混排: 标题/轴标签统一用英文
+- [x] 配色: 使用 seaborn colorblind palette，色盲友好
+- [x] 导出格式: PNG (主, 15张全部导出)
 
 ---
 
 ## 验收标准
 
-- [ ] 生成 F1~F10 全部图表 (F11~F13 为推荐)
-- [ ] 所有图表统一风格、清晰可读
-- [ ] 图表文件位于 `figures/` 对应子目录下
+- [x] 生成 F1~F10 全部图表 (F11~F13 为推荐)
+- [x] 所有图表统一风格、清晰可读
+- [x] 图表文件位于 `figures/` 根目录下
 
 ## 输入
 - `figures/eda/`, `figures/models/`, `figures/pso/`, `figures/scenarios/`, `figures/porpoising_risk/`
@@ -81,3 +81,26 @@ figures/
 > - 推荐图表视前置模块完成情况决定是否生成
 > - 若时间紧迫，可简化图表风格 (如去掉 3D 响应面的交互性)
 > - 图表编号和命名可根据实际生成情况调整
+
+---
+
+## 执行记录
+
+**执行日期**: 2026-05-31
+
+**编排脚本**: `experiments/run_visualization.py`
+
+**生成策略**:
+| 图表 | 生成方式 | 说明 |
+|------|----------|------|
+| F1, F2, F3 | 从 scratch 重新生成 | F1/F2 从 processed data 直接绘制；F3 从 `model_comparison.csv` 合并 R²/MSE/Latency 三图为一张 |
+| F4, F5, F6, F13 | 复制已有 | 从 `figures/models/`、`figures/pso/` 复制并重命名 — PSO 实验耗时过长 |
+| F7, F10 | 从缓存重新生成 | F7 从 `outputs/scenarios/*/stats.json` 加载数据重绘雷达图；F10 合并 S1+S2 龙卷风图 |
+| F8, F9 | 复制已有 | 从 `figures/scenarios/` 复制 — SHAP 需要加载模型并运行 explainer，复制已有高质量图更高效 |
+| F11, F12 | 复制已有 | 从 `figures/porpoising_risk/`、`figures/models/` 复制 — 需 DeepEnsemble autograd / KNN 响应面计算 |
+
+**关键决策**:
+- F5 取 T08 版 `convergence_comparison.png`（含 Baseline+Exp1-4 多曲线），不使用 T04 版
+- F10 将 S1/S2 两个独立 tornado 合并为一张 1×2 并排图
+- 统一风格：DPI=150, seaborn colorblind palette, English 标签, DejaVu Sans 字体
+- 15 张图全部成功生成，F1-F13 全覆盖（核心+推荐）

@@ -69,13 +69,15 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   ├── run_trajectory_viz.py          # T06扩展: PSO粒子PCA迁移轨迹
 │   ├── run_landscape_diagnosis.py     # T06扩展: 景观诊断 Tasks A-E
 │   ├── run_active_learning.py
-│   └── run_ablation.py
+│   ├── run_ablation.py
+│   └── run_visualization.py            # T09: 统一结果可视化汇总
 │
 ├── outputs/                           # 运行输出
 │   ├── models/                        # 训练好的模型
 │   └── scenarios/                     # S1/S2/S3/S4寻优结果 + 对比CSV
 │
 ├── figures/                           # 图表
+│   ├── 01_distribution.png ~ 15_ablation_study.png   # T09: 统一编号图表 (F1~F13)
 │   ├── eda/
 │   │   └── README.md                   # EDA图说明
 │   ├── models/

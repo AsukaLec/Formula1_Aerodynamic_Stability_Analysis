@@ -62,16 +62,18 @@ docs/tasks/
 
 ## 当前状态
 
-- 项目处于 **T07 已完成**, T08 待开始
+- 项目处于 **T09 已完成**, T10 待开始
 - `src/preprocessing/` 已完成 (cleaner, normalizer, feature_engineering)
 - `src/models/` 已完成 (baseline, mlp, tabnet_model, deep_ensemble, evaluate)
 - `src/optimization/` 已完成 (pso_base, pso_adaptive, pso_risk_sensitive, fitness)
-- `src/analysis/` 已完成 (region_discovery, explainability)
+- `src/analysis/` 已完成 (region_discovery, explainability, landscape_diagnosis)
 - `src/scenarios/` 已完成 (scenario_def, scenario_runner)
 - `src/visualization/` 已完成 (plot_eda, plot_regions, plot_scenarios, plot_porpoising)
 - `src/utils/config.py` 已创建
 - `data/raw/` 已有原始数据集
-- T01, T02, T03, T04, T05, T06, T07 任务文档已移至 `docs/tasks/done/`
+- `experiments/run_visualization.py` 已创建 (T09 统一编排)
+- `figures/01_*.png` ~ `15_*.png` 已生成 (T09 输出, 15张统一风格图表)
+- T01, T02, T03, T04, T05, T06, T07, T08, T09 任务文档已移至 `docs/tasks/done/`
 
 ---
 
