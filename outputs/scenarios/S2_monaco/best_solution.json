@@ -1,0 +1,22 @@
+{
+  "scenario": "S2_monaco",
+  "scenario_name": "S2 Monaco High-Downforce",
+  "gbest_pos": [
+    158.06688278109698,
+    20.0,
+    0.0,
+    3000.0,
+    0.0
+  ],
+  "gbest_pos_dict": {
+    "speed_kmh": 158.06688278109698,
+    "wing_angle_deg": 20.0,
+    "drs_active": 0.0,
+    "downforce_n": 3000.0,
+    "drag_n": 0.0
+  },
+  "gbest_fitness": 99.78802348487079,
+  "n_iter": 46,
+  "converged": true,
+  "trial_seed": 4400
+}

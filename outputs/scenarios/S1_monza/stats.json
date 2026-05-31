@@ -1,0 +1,40 @@
+{
+  "scenario": "S1_monza",
+  "n_trials": 15,
+  "model_type": "risk_sensitive_ensemble",
+  "lambda_risk": 1.0,
+  "fitness_mean": 99.73552629304659,
+  "fitness_std": 0.00011361968376838128,
+  "fitness_min": 99.73512560311406,
+  "fitness_max": 99.73557742240526,
+  "param_means": {
+    "speed_kmh": 280.0,
+    "wing_angle_deg": 0.0,
+    "drs_active": 1.0,
+    "downforce_n": 3209.9291542812093,
+    "drag_n": 44.538905890912716
+  },
+  "param_stds": {
+    "speed_kmh": 0.0,
+    "wing_angle_deg": 0.0,
+    "drs_active": 0.0,
+    "downforce_n": 18.21802217180708,
+    "drag_n": 2.407100075139662
+  },
+  "param_mins": {
+    "speed_kmh": 280.0,
+    "wing_angle_deg": 0.0,
+    "drs_active": 1.0,
+    "downforce_n": 3157.333312514437,
+    "drag_n": 40.97344663620734
+  },
+  "param_maxs": {
+    "speed_kmh": 280.0,
+    "wing_angle_deg": 0.0,
+    "drs_active": 1.0,
+    "downforce_n": 3244.2737306965023,
+    "drag_n": 51.69614825260416
+  },
+  "iters_mean": 52.6,
+  "converged_rate": 0.8
+}

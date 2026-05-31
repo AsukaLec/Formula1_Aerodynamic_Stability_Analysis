@@ -44,37 +44,43 @@ Formula1_Aerodynamic_Stability_Analysis/
 │   │   ├── pso_risk_sensitive.py      # 风险敏感 PSO
 │   │   ├── fitness.py                 # 适应度函数
 │   │   └── active_learning.py         # 主动学习 (可选)
-│   ├── analysis/                       # 优化结果分析
-│   │   └── region_discovery.py        # 高性能参数区域发现
-│   ├── scenarios/                     # 多场景
-│   │   ├── scenario_def.py
-│   │   └── scenario_runner.py
+│   ├── analysis/                       # 可解释性与优化结果分析
+│   │   ├── region_discovery.py        # 高性能参数区域发现
+│   │   └── explainability.py          # SHAP/排列重要性/约束灵敏度/反事实/决策规则
+│   ├── scenarios/                     # 多场景定义与执行
+│   │   ├── scenario_def.py            # S1(Monza)/S2(Monaco)/S3(均衡)/S4(湿地)
+│   │   └── scenario_runner.py         # 多试验PSO运行与统计汇总
 │   ├── visualization/                 # 可视化
-│   │   ├── plot_eda.py
-│   │   ├── plot_results.py
+│   │   ├── plot_eda.py                # 探索性数据分析图表
 │   │   ├── plot_regions.py            # 高性能区域可视化
-│   │   └── plot_porpoising.py
+│   │   ├── plot_scenarios.py          # 多场景雷达/龙卷风/收敛/SHAP瀑布图
+│   │   └── plot_porpoising.py         # Porpoising风险热力图 (待T07实现)
 │   └── utils/                         # 工具
-│       ├── config.py                   # 全局配置 (模型/PSO/HPR参数/路径)
+│       ├── config.py                   # 全局配置 (模型/PSO/场景/HPR参数/路径)
 │       └── metrics.py
 │
 ├── experiments/                       # 实验脚本
+│   ├── run_preprocessing.py
 │   ├── run_model_comparison.py
 │   ├── run_pso_comparison.py
 │   ├── run_region_discovery.py
+│   ├── run_multi_scenario.py          # T06: 多场景优化+可解释性分析
+│   ├── run_active_learning.py
 │   └── run_ablation.py
 │
 ├── outputs/                           # 运行输出
 │   ├── models/                        # 训练好的模型
-│   └── scenarios/                     # 各场景寻优结果
+│   └── scenarios/                     # S1/S2/S3/S4寻优结果 + 对比CSV
 │
 ├── figures/                           # 图表
 │   ├── eda/
-│   │   └── README.md                   # 各图含义与数值说明 (自动生成, 见 plot_eda.py)
+│   │   └── README.md                   # EDA图说明
 │   ├── models/
 │   ├── pso/
 │   ├── scenarios/
+│   │   └── README.md                   # T06各图含义与数值说明
 │   ├── regions/                        # 高性能参数区域发现图
+│   ├── active_learning/
 │   └── porpoising_risk/
 │
 ├── reports/                           # 报告

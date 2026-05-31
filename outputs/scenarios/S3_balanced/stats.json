@@ -1,0 +1,40 @@
+{
+  "scenario": "S3_balanced",
+  "n_trials": 15,
+  "model_type": "risk_sensitive_ensemble",
+  "lambda_risk": 1.0,
+  "fitness_mean": 99.82588586087029,
+  "fitness_std": 0.004885454095217123,
+  "fitness_min": 99.81469337362796,
+  "fitness_max": 99.82835698174313,
+  "param_means": {
+    "speed_kmh": 203.99536294499902,
+    "wing_angle_deg": 10.157780968040461,
+    "drs_active": 0.0,
+    "downforce_n": 744.7208389844243,
+    "drag_n": 121.89604220056842
+  },
+  "param_stds": {
+    "speed_kmh": 7.905052419950315,
+    "wing_angle_deg": 0.5982520751770007,
+    "drs_active": 0.0,
+    "downforce_n": 297.4705961012261,
+    "drag_n": 20.219113045153573
+  },
+  "param_mins": {
+    "speed_kmh": 200.0,
+    "wing_angle_deg": 10.0,
+    "drs_active": 0.0,
+    "downforce_n": 0.0,
+    "drag_n": 108.21540915600944
+  },
+  "param_maxs": {
+    "speed_kmh": 224.8328146367727,
+    "wing_angle_deg": 12.319893958668537,
+    "drs_active": 0.0,
+    "downforce_n": 1512.562968314529,
+    "drag_n": 166.92941489015058
+  },
+  "iters_mean": 46.93333333333333,
+  "converged_rate": 0.8
+}

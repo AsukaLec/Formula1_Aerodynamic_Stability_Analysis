@@ -1,0 +1,22 @@
+{
+  "scenario": "S1_monza",
+  "scenario_name": "S1 Monza High-Speed",
+  "gbest_pos": [
+    280.0,
+    0.0,
+    1.0,
+    3211.264267705856,
+    44.17255453802773
+  ],
+  "gbest_pos_dict": {
+    "speed_kmh": 280.0,
+    "wing_angle_deg": 0.0,
+    "drs_active": 1.0,
+    "downforce_n": 3211.264267705856,
+    "drag_n": 44.17255453802773
+  },
+  "gbest_fitness": 99.73557742240526,
+  "n_iter": 80,
+  "converged": true,
+  "trial_seed": 5600
+}

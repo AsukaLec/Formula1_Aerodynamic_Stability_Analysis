@@ -1,0 +1,22 @@
+{
+  "scenario": "S3_balanced",
+  "scenario_name": "S3 Balanced (Optional)",
+  "gbest_pos": [
+    200.0544734177884,
+    10.0,
+    0.0,
+    787.1558534557469,
+    110.56711013182317
+  ],
+  "gbest_pos_dict": {
+    "speed_kmh": 200.0544734177884,
+    "wing_angle_deg": 10.0,
+    "drs_active": 0.0,
+    "downforce_n": 787.1558534557469,
+    "drag_n": 110.56711013182317
+  },
+  "gbest_fitness": 99.82835698174313,
+  "n_iter": 80,
+  "converged": false,
+  "trial_seed": 4500
+}
