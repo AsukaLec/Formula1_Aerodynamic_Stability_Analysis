@@ -1,0 +1,98 @@
+\section{数据精炼}\label{sec:refine}
+
+\begin{chapterquestion}
+\textbf{本章研究的问题}：高不确定区域是否对应代理模型的真实认知盲区？
+\end{chapterquestion}
+
+\subsection{方法定位：不确定性引导的局部重采样}
+
+标准主动学习（Active Learning）需要获取\emph{新的真实标签}（如新 CFD 仿真）。
+本文受限于公开数据集，无法引入新物理标签，
+因此本模块在严格意义上是\textbf{不确定性引导的局部重采样}
+（Uncertainty-Guided Local Resampling）：
+用 $\sigma(x)$ 识别代理薄弱区，从\emph{已有}训练集中按相似性检索补充样本后重训练。
+本章的目的并非仅报告 MSE 的下降幅度，
+而是借此检验一个判别性问题：\textbf{代理模型是否存在真实的认知盲区？}
+
+\subsection{单轮反馈精炼流程}
+
+在第~\ref{sec:risk}~节风险敏感 PSO 基础上，执行一次完整的反馈循环：
+（1）PSO 探索并收集候选位置的 $\sigma(x)$；
+（2）选取 Top-$20$ 个 $\sigma$ 最高的候选，即代理预测不确定性最高的位置；
+（3）在这些位置附近从训练集检索最近邻样本（共 $100$ 个）加入训练；
+（4）重训练 DeepEnsemble。
+
+\begin{table}[H]
+\centering
+\caption{Top-5 高不确定性候选解的特征}
+\begin{tabular}{rrrrrrr}
+\toprule
+速度 & 翼角 & DRS & 下压力 (N) & 阻力 (N) & $\mu$ & $\sigma$ \\
+\midrule
+175 & 5.1 & 0 & 8773 & 154.8 & 36.34 & 37.57 \\
+217 & 14.7 & 1 & 6081 & 260.0 & 46.02 & 36.73 \\
+139 & 34.6 & 0 & 6911 & 196.6 & 41.63 & 36.63 \\
+106 & 40.4 & 0 & 6331 & 203.4 & 36.17 & 32.13 \\
+114 & 22.3 & 0 & 9093 & 155.3 & 27.68 & 31.36 \\
+\bottomrule
+\end{tabular}
+\label{tab:candidates}
+\end{table}
+
+表~\ref{tab:candidates} 显示高不确定候选解的共同特征：\textbf{下压力极高（6000--9000 N）}，
+对应训练数据中极少出现的极端工况。这与第~\ref{sec:risk}~节 OOD 测试的结论一致——
+高不确定区域对应数据覆盖不足之处。
+
+\subsection{结果：高不确定区域的误差显著下降}
+
+\begin{table}[H]
+\centering
+\caption{精炼前后模型性能}
+\begin{tabular}{lrrr}
+\toprule
+指标 & 精炼前 & 精炼后 & 变化 \\
+\midrule
+R$^2$  & 0.9995 & 0.9998 & $+0.03\%$ \\
+MSE   & 0.3272 & 0.1444 & $\mathbf{-55.9\%}$ \\
+MAE   & 0.2712 & 0.1678 & $-38.1\%$ \\
+RMSE  & 0.5720 & 0.3800 & $-33.6\%$ \\
+\bottomrule
+\end{tabular}
+\label{tab:refine}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{figures/active_learning_convergence.png}
+\caption{精炼前后 PSO 收敛曲线对比}
+\label{fig:al_conv}
+\end{figure}
+
+一轮精炼后，MSE 下降 \textbf{55.9\%}，PSO 收敛速度提升约 \textbf{2.1 倍}（$37\to18$ 代），
+且收敛后的 gbest 从 $101.30$（含过度外推）降至 $100.02$（图~\ref{fig:al_conv}）。
+误差下降主要发生在高 $\sigma$ 区域，gbest 的回落对应过度外推被纠正。
+两者共同支持以下判断：
+
+\begin{chapterquestion}
+代理模型在低覆盖、高不确定区域存在认知盲区；
+该盲区并非统计噪声，而是可被针对性修复的缺陷。
+\end{chapterquestion}
+
+\subsection{方法的局限}
+
+需如实指出本方法的三点局限，以免过度解读：
+\begin{enumerate}
+    \item \textbf{隐式重加权}：检索到的最近邻若已存在于训练集，
+        其效果等价于对这些样本施加更高训练频率（Instance Reweighting），
+        而非注入新的分布信息；故 55.9\% 的 MSE 降幅应理解为
+        OOD 区域\emph{拟合质量}的改善，不应等同于泛化能力的等量提升。
+    \item \textbf{无消融对照}：本实验未设随机重采样对照组，
+        因此不能完全排除"任何形式的样本扩充都会改善精度"的可能；
+        严格的因果归因需消融框架完成。
+    \item \textbf{仅单轮}：本文只执行了一轮"探索$\to$增强$\to$重训练"反馈，
+        尚未构成多轮迭代的闭环；多轮收敛性与边际收益递减留待未来工作。
+\end{enumerate}
+
+至此，可信性分析的三个环节——度量（第~\ref{sec:uncertainty}~节）、
+约束（第~\ref{sec:risk}~节）、修补（本节）——均已完成。
+第~\ref{sec:converge}~节进一步考察异常二与异常三是否仍然存在。

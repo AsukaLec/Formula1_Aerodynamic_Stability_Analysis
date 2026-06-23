@@ -1,0 +1,153 @@
+\documentclass[UTF8,11pt,a4paper]{ctexart}
+
+%================================================
+% 页面设置
+%================================================
+
+\usepackage[a4paper,left=2.5cm,right=2.5cm,
+top=2.8cm,bottom=2.8cm]{geometry}
+
+\linespread{1.2}
+
+%================================================
+% 字体与数学
+%================================================
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+
+%================================================
+% 图表
+%================================================
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{float}
+
+%================================================
+% 颜色与超链接
+%================================================
+
+\usepackage{xcolor}
+
+\definecolor{myblue}{RGB}{40,80,160}
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=myblue,
+    citecolor=myblue,
+    urlcolor=myblue
+]{hyperref}
+
+%================================================
+% 页眉页脚
+%================================================
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+\fancyhead[L]{计算智能课程设计}
+\fancyhead[R]{可信代理模型优化}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+%================================================
+% 标题格式
+%================================================
+
+\usepackage{titlesec}
+
+\titleformat{\section}
+{\Large\bfseries}
+{\thesection}
+{1em}
+{}
+
+\titleformat{\subsection}
+{\large\bfseries}
+{\thesubsection}
+{1em}
+{}
+
+%================================================
+% 代码
+%================================================
+
+\usepackage{listings}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny,
+    tabsize=4
+}
+
+%================================================
+% 图表标题
+%================================================
+
+\captionsetup{
+    font=small,
+    labelfont=bf
+}
+
+%================================================
+% 自定义环境：本章核心问题框
+%================================================
+
+\usepackage{mdframed}
+
+\newmdenv[
+    linecolor=myblue,
+    linewidth=0.8pt,
+    leftmargin=0pt,
+    rightmargin=0pt,
+    innertopmargin=6pt,
+    innerbottommargin=6pt,
+    backgroundcolor=myblue!4
+]{chapterquestion}
+
+%================================================
+% 文档开始
+%================================================
+
+\begin{document}
+
+\input{sections/00_cover}
+
+\pagenumbering{Roman}
+
+\input{sections/01_abstract}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\pagenumbering{arabic}
+
+\input{sections/02_introduction}
+\input{sections/03_dataset}
+\input{sections/04_surrogate}
+\input{sections/05_anomalies}
+\input{sections/06_uncertainty}
+\input{sections/07_risk_sensitive}
+\input{sections/08_refinement}
+\input{sections/09_similar_solutions}
+\input{sections/10_landscape}
+\input{sections/11_conclusion}
+
+\end{document}

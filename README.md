@@ -38,6 +38,10 @@ Formula1_Aerodynamic_Stability_Analysis/
 └── reports/                 # 实验报告
 ```
 
+## 结题报告
+
+LaTeX 结题报告位于 `reports/main.tex`（XeLaTeX 编译），连同 28 张图片位于 `reports/figures/`。
+
 ## 数据集
 
 [Kaggle - F1 Aerodynamic Stability and Porpoising](https://www.kaggle.com/datasets/igormerlinicomposer/f1-aerodynamic-stability-and-porpoising-150k-samp/data)

@@ -1,0 +1,152 @@
+\documentclass[UTF8,12pt,a4paper]{ctexart}
+
+%================================================
+% 页面设置
+%================================================
+
+\usepackage[a4paper,left=2.5cm,right=2.5cm,
+top=2.8cm,bottom=2.8cm]{geometry}
+
+\linespread{1.3}
+
+%================================================
+% 字体与数学
+%================================================
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+
+%================================================
+% 图表
+%================================================
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{float}
+
+%================================================
+% 颜色与超链接
+%================================================
+
+\usepackage{xcolor}
+
+\definecolor{myblue}{RGB}{40,80,160}
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=myblue,
+    citecolor=myblue,
+    urlcolor=myblue
+]{hyperref}
+
+%================================================
+% 页眉页脚
+%================================================
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+\fancyhead[L]{计算智能课程设计}
+\fancyhead[R]{F1赛车气动稳定性优化}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+%================================================
+% 标题格式
+%================================================
+
+\usepackage{titlesec}
+
+\titleformat{\section}
+{\Large\bfseries}
+{\thesection}
+{1em}
+{}
+
+\titleformat{\subsection}
+{\large\bfseries}
+{\thesubsection}
+{1em}
+{}
+
+%================================================
+% 代码
+%================================================
+
+\usepackage{listings}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny,
+    tabsize=4
+}
+
+%================================================
+% 图表标题
+%================================================
+
+\captionsetup{
+    font=small,
+    labelfont=bf
+}
+
+%================================================
+% 文档开始
+%================================================
+
+\begin{document}
+
+%================================================
+% 封面
+%================================================
+
+\input{sections/00_cover}
+
+%================================================
+% 摘要
+%================================================
+
+\pagenumbering{Roman}
+
+\input{sections/01_abstract}
+
+\newpage
+
+%================================================
+% 目录
+%================================================
+
+\tableofcontents
+
+\newpage
+
+\pagenumbering{arabic}
+
+%================================================
+% 各章节
+%================================================
+
+\input{sections/02_introduction}
+\input{sections/03_dataset}
+\input{sections/04_surrogate}
+\input{sections/05_pso}
+\input{sections/06_active_learning}
+\input{sections/07_multi_scenario}
+\input{sections/08_porpoising}
+\input{sections/09_experiments}
+\input{sections/10_conclusion}
+
+\end{document}

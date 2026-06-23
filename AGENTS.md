@@ -62,10 +62,10 @@ docs/tasks/
 
 ## 当前状态
 
-- 项目处于 **T09 已完成**, T10 待开始
+- 项目处于 **T11 已完成** (2026-06-14, 报告修正与优化)
 - `src/preprocessing/` 已完成 (cleaner, normalizer, feature_engineering)
 - `src/models/` 已完成 (baseline, mlp, tabnet_model, deep_ensemble, evaluate)
-- `src/optimization/` 已完成 (pso_base, pso_adaptive, pso_risk_sensitive, fitness)
+- `src/optimization/` 已完成 (pso_base, pso_adaptive, pso_risk_sensitive, fitness, ga, de, sa)
 - `src/analysis/` 已完成 (region_discovery, explainability, landscape_diagnosis)
 - `src/scenarios/` 已完成 (scenario_def, scenario_runner)
 - `src/visualization/` 已完成 (plot_eda, plot_regions, plot_scenarios, plot_porpoising)
@@ -73,7 +73,8 @@ docs/tasks/
 - `data/raw/` 已有原始数据集
 - `experiments/run_visualization.py` 已创建 (T09 统一编排)
 - `figures/01_*.png` ~ `15_*.png` 已生成 (T09 输出, 15张统一风格图表)
-- T01, T02, T03, T04, T05, T06, T07, T08, T09 任务文档已移至 `docs/tasks/done/`
+- `reports/main.tex` + 10 章节 + 28 张图已生成 (T10 结题报告)
+- T01, T02, T03, T04, T05, T06, T07, T08, T09, T10 任务文档已移至 `docs/tasks/done/`
 
 ---
 
@@ -86,5 +87,5 @@ docs/tasks/
 5. **实验脚本放在 experiments/** — 不污染 src/
 6. **随机种子统一** — `random_state=42`，确保可复现
 7. **弹性优先** — 每个任务有核心/推荐/可选三级，时间不足时优先保障核心项
-8. **文档同步更新** — 修改全局常量（阈值、标签、配置键名等）后，必须搜索 `docs/` 下所有引用该值的文档并一并更新，不得只改代码而不同步文档
+8. **文档同步更新** — 修改全局常量（阈值、标签、配置键名等）后，必须立即使用搜索工具全局查找 `docs/` 目录下所有相关引用，并逐一完成文件修改，不得只改代码而不同步文档
 9. **英文输出** — 开发阶段所有代码 print 语句、中间报告文字（如 `reports/*.md`）一律使用英文。最终结题报告 (T10) 再切换为中文，避免 Windows Python 与 WSL/Linux 间编码不一致导致乱码。但是在对话时请使用中文。

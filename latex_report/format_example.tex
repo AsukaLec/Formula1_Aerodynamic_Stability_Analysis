@@ -1,0 +1,444 @@
+\documentclass[UTF8,12pt,a4paper]{ctexart}
+
+%================================================
+% 页面设置
+%================================================
+
+\usepackage[a4paper,left=2.5cm,right=2.5cm,
+top=2.8cm,bottom=2.8cm]{geometry}
+
+\linespread{1.3}
+
+%================================================
+% 字体与数学
+%================================================
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+
+%================================================
+% 图表
+%================================================
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{float}
+
+%================================================
+% 颜色与超链接
+%================================================
+
+\usepackage{xcolor}
+
+\definecolor{myblue}{RGB}{40,80,160}
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=myblue,
+    citecolor=myblue,
+    urlcolor=myblue
+]{hyperref}
+
+%================================================
+% 页眉页脚
+%================================================
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+\fancyhead[L]{计算智能课程设计}
+\fancyhead[R]{F1赛车气动稳定性优化}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+%================================================
+% 标题格式
+%================================================
+
+\usepackage{titlesec}
+
+\titleformat{\section}
+{\Large\bfseries}
+{\thesection}
+{1em}
+{}
+
+\titleformat{\subsection}
+{\large\bfseries}
+{\thesubsection}
+{1em}
+{}
+
+%================================================
+% 代码
+%================================================
+
+\usepackage{listings}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny,
+    tabsize=4
+}
+
+%================================================
+% 图表标题
+%================================================
+
+\captionsetup{
+    font=small,
+    labelfont=bf
+}
+
+%================================================
+% 文档开始
+%================================================
+
+\begin{document}
+
+%================================================
+% 封面
+%================================================
+
+\begin{titlepage}
+
+\centering
+
+\vspace*{2cm}
+
+{\Huge\heiti 华南师范大学 \par}
+
+\vspace{0.5cm}
+
+{\Large 人工智能学院 \par}
+
+\vspace{2.5cm}
+
+{\Huge\bfseries
+基于代理模型与改进粒子群算法的\\[0.4cm]
+F1赛车气动稳定性优化研究
+\par}
+
+\vspace{2.5cm}
+
+{\Large 《计算智能》课程设计}
+
+\vfill
+
+\begin{tabular}{rl}
+姓名： & 陈新安 \\
+学号： & 202440012028 \\[0.3cm]
+姓名： & 郑骏远 \\
+学号： & 202440012047
+\end{tabular}
+
+\vfill
+
+{\large
+2025--2026 学年第二学期
+}
+
+\vspace{1cm}
+
+\end{titlepage}
+
+%================================================
+% 摘要
+%================================================
+
+\pagenumbering{Roman}
+
+\section*{摘要}
+
+随着F1赛车空气动力学设计复杂度的不断提高，
+传统CFD仿真与风洞实验在计算成本和研发效率方面面临较大挑战。
+
+本文基于Kaggle公开的F1气动稳定性数据集，
+构建了一种融合代理模型（Surrogate Model）
+与粒子群优化算法（Particle Swarm Optimization, PSO）
+的智能优化框架。
+
+首先利用机器学习方法建立赛车工况参数与稳定性评分之间的非线性映射关系，
+随后利用代理模型替代高成本仿真过程，
+并在此基础上实现参数自动搜索与优化。
+此外，针对数据分布偏斜以及模型不确定性问题，
+进一步引入风险敏感优化机制，
+提升搜索结果的鲁棒性与可信度。
+
+实验结果表明，
+该方法能够显著提高气动参数优化效率，
+为赛车气动设计提供一种低成本、高效率的数据驱动解决方案。
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{关键词：}
+代理模型；
+粒子群优化；
+F1赛车；
+气动稳定性；
+参数寻优
+
+\newpage
+
+%================================================
+% 目录
+%================================================
+
+\tableofcontents
+
+\newpage
+
+\pagenumbering{arabic}
+
+%================================================
+% 第一章
+%================================================
+
+\section{研究背景}
+
+\subsection{问题定义}
+
+F1赛车的空气动力学设计高度依赖计算流体力学（CFD）
+与风洞实验。
+
+然而在现行FIA规则限制下，
+车队可使用的计算资源受到严格约束，
+使得传统方法难以完成大规模参数空间探索。
+
+因此，
+有必要建立一种能够快速评估赛车气动性能的代理模型，
+并进一步实现自动化参数寻优。
+
+\subsection{研究目标}
+
+本研究主要解决两个问题：
+
+\begin{enumerate}
+    \item 气动稳定性预测；
+    \item 气动参数自动优化。
+\end{enumerate}
+
+目标函数如下：
+
+\begin{equation}
+f(x_1,x_2,\cdots,x_n)\rightarrow y
+\end{equation}
+
+其中：
+
+\begin{itemize}
+    \item $x$ 表示赛车工况参数；
+    \item $y$ 表示稳定性评分。
+\end{itemize}
+
+进一步求解：
+
+\begin{equation}
+x^*=
+\arg\max f(x)
+\end{equation}
+
+实现自动化参数优化。
+
+%================================================
+
+\section{数据分析与预处理}
+
+\subsection{数据集介绍}
+
+数据来源于Kaggle公开数据集：
+
+F1 Aerodynamic Stability and Porpoising Dataset。
+
+数据规模约为15万条样本。
+
+\subsection{数据清洗}
+
+主要包括：
+
+\begin{itemize}
+    \item 缺失值检测；
+    \item 异常值分析；
+    \item 数据归一化；
+    \item 特征工程。
+\end{itemize}
+
+\subsection{探索性数据分析}
+
+插入数据分布图。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/distribution.png}
+\caption{稳定性评分分布}
+\end{figure}
+
+%================================================
+
+\section{代理模型构建}
+
+\subsection{模型选择}
+
+本文比较以下模型：
+
+\begin{itemize}
+    \item Linear Regression
+    \item Random Forest
+    \item XGBoost
+    \item MLP
+\end{itemize}
+
+\subsection{评价指标}
+
+均方误差：
+
+\begin{equation}
+MSE=
+\frac{1}{n}
+\sum_{i=1}^{n}
+(y_i-\hat y_i)^2
+\end{equation}
+
+决定系数：
+
+\begin{equation}
+R^2=
+1-
+\frac{\sum(y_i-\hat y_i)^2}
+{\sum(y_i-\bar y)^2}
+\end{equation}
+
+%================================================
+
+\section{粒子群优化算法}
+
+\subsection{标准PSO}
+
+速度更新：
+
+\begin{equation}
+v_i^{t+1}
+=
+wv_i^t
++
+c_1r_1(p_i-x_i)
++
+c_2r_2(g-x_i)
+\end{equation}
+
+位置更新：
+
+\begin{equation}
+x_i^{t+1}
+=
+x_i^t
++
+v_i^{t+1}
+\end{equation}
+
+\subsection{风险敏感优化}
+
+适应度函数：
+
+\begin{equation}
+Fitness
+=
+\mu(x)
+-
+\lambda\sigma(x)
+\end{equation}
+
+其中：
+
+\begin{itemize}
+    \item $\mu(x)$ 为预测均值；
+    \item $\sigma(x)$ 为预测不确定性。
+\end{itemize}
+
+%================================================
+
+\section{实验结果与分析}
+
+\subsection{代理模型比较}
+
+\begin{table}[H]
+\centering
+\caption{模型性能比较}
+\begin{tabular}{cccc}
+\toprule
+模型 & MAE & RMSE & $R^2$\\
+\midrule
+Linear Regression & & &\\
+Random Forest & & &\\
+XGBoost & & &\\
+MLP & & &\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{PSO收敛分析}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/convergence.png}
+\caption{PSO收敛曲线}
+\end{figure}
+
+%================================================
+
+\section{结论与展望}
+
+本文构建了一个面向F1赛车气动稳定性优化的代理优化框架。
+
+实验结果表明，
+代理模型能够有效替代高成本仿真过程，
+改进PSO能够实现高效参数搜索。
+
+未来可进一步研究：
+
+\begin{itemize}
+    \item 多目标优化（MOPSO）；
+    \item 贝叶斯优化；
+    \item 物理信息神经网络；
+    \item CFD与代理模型协同优化。
+\end{itemize}
+
+%================================================
+% 参考文献
+%================================================
+
+\begin{thebibliography}{99}
+
+\bibitem{ref1}
+Raissi M, Perdikaris P, Karniadakis G E.
+Physics-informed neural networks:
+A deep learning framework for solving forward and inverse problems.
+Journal of Computational Physics, 2019.
+
+\bibitem{ref2}
+Li J, Du X, Martins J R R A.
+Machine learning in aerodynamic shape optimisation.
+Progress in Aerospace Sciences, 2022.
+
+\bibitem{ref3}
+Kennedy J, Eberhart R.
+Particle Swarm Optimization.
+IEEE International Conference on Neural Networks, 1995.
+
+\end{thebibliography}
+
+\end{document}
